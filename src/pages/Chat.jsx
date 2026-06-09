@@ -10,7 +10,6 @@ export default function Chat({ user }) {
 
   const fileRef = useRef();
 
-  // 🔊 sound
   const playSound = () => {
     const audio = new Audio(
       "https://actions.google.com/sounds/v1/notifications/notification_2.ogg"
@@ -18,7 +17,6 @@ export default function Chat({ user }) {
     audio.play();
   };
 
-  // 📥 load messages
   async function loadMessages() {
     const { data } = await supabase
       .from("messages")
@@ -31,7 +29,6 @@ export default function Chat({ user }) {
   useEffect(() => {
     loadMessages();
 
-    // 🔴 realtime listener (ONLY THIS NOW)
     const channel = supabase
       .channel("messages")
       .on(
@@ -55,7 +52,6 @@ export default function Chat({ user }) {
     return () => supabase.removeChannel(channel);
   }, []);
 
-  // 💬 send text
   async function sendText() {
     if (!text.trim()) return;
 
@@ -66,7 +62,6 @@ export default function Chat({ user }) {
     setText("");
   }
 
-  // 📎 send file
   async function sendFile(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -90,21 +85,16 @@ export default function Chat({ user }) {
   return (
     <div className="chat-page">
 
-      {/* TOP BAR */}
       <div className="topbar">
-        <h2>
-          Cherry 🍒 {unread > 0 && <span>({unread})</span>}
-        </h2>
+        <h2>Cherry 🍒 {unread > 0 && `(${unread})`}</h2>
       </div>
 
-      {/* MESSAGES */}
       <div className="messages">
         {messages.map((msg) => (
           <Message key={msg.id} msg={msg} currentUser={user} />
         ))}
       </div>
 
-      {/* INPUT */}
       <div className="composer">
 
         <input

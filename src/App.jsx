@@ -12,51 +12,35 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [entered, setEntered] = useState(false);
 
-  // =========================
-  // 🔐 GET SESSION
-  // =========================
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
-
-    return () => subscription.unsubscribe();
   }, []);
 
-  // =========================
-  // 🧠 FIRST ENTRY CHECK
-  // =========================
   useEffect(() => {
     const seen = localStorage.getItem("entered");
     if (seen) setEntered(true);
   }, []);
 
-  // =========================
-  // 🔔 PUSH PERMISSION (IMPORTANT FIX)
-  // =========================
+  // 🔔 PUSH PROMPT (ONLY ONCE AFTER LOGIN)
   useEffect(() => {
     if (session) {
-      // run ONLY when user logs in
       setTimeout(() => {
         try {
           OneSignal.Slidedown.promptPush();
-        } catch (err) {
-          console.log("Push prompt error:", err);
+        } catch (e) {
+          console.log(e);
         }
-      }, 3000); // delay so UI loads first
+      }, 2500);
     }
   }, [session]);
 
-  // =========================
-  // ⏳ LOADING
-  // =========================
   if (loading) {
     return (
       <div style={styles.center}>
@@ -65,14 +49,8 @@ export default function App() {
     );
   }
 
-  // =========================
-  // 🔓 NOT LOGGED IN
-  // =========================
   if (!session) return <Login />;
 
-  // =========================
-  // 🏠 FIRST TIME DASHBOARD
-  // =========================
   if (!entered) {
     return (
       <Dashboard
@@ -84,15 +62,9 @@ export default function App() {
     );
   }
 
-  // =========================
-  // 💬 CHAT SCREEN
-  // =========================
   return <Chat user={session.user.email} />;
 }
 
-// =========================
-// 🎨 STYLE
-// =========================
 const styles = {
   center: {
     height: "100vh",
@@ -101,6 +73,5 @@ const styles = {
     alignItems: "center",
     background: "#0f0f17",
     color: "white",
-    fontFamily: "sans-serif",
   },
 };
