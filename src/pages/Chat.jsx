@@ -1,22 +1,16 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../services/supabase";
 import { uploadToCloudinary } from "../services/cloudinary";
-import Message from "../components/Message";
 
 export default function Chat({ user }) {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
-  const [unread, setUnread] = useState(0);
 
   const fileRef = useRef();
 
-  const playSound = () => {
-    const audio = new Audio(
-      "https://actions.google.com/sounds/v1/notifications/notification_2.ogg"
-    );
-    audio.play();
-  };
-
+  // =========================
+  // 📥 LOAD MESSAGES
+  // =========================
   async function loadMessages() {
     const { data } = await supabase
       .from("messages")
@@ -29,6 +23,7 @@ export default function Chat({ user }) {
   useEffect(() => {
     loadMessages();
 
+    // 🔴 REALTIME
     const channel = supabase
       .channel("messages")
       .on(
@@ -40,11 +35,6 @@ export default function Chat({ user }) {
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
-
-          if (payload.new.sender !== user) {
-            setUnread((prev) => prev + 1);
-            playSound();
-          }
         }
       )
       .subscribe();
@@ -52,16 +42,28 @@ export default function Chat({ user }) {
     return () => supabase.removeChannel(channel);
   }, []);
 
+  // =========================
+  // 💬 SEND TEXT (INSTANT UI)
+  // =========================
   async function sendText() {
     if (!text.trim()) return;
 
-    await supabase.from("messages").insert([
-      { sender: user, text },
-    ]);
+    const newMsg = {
+      sender: user,
+      text,
+    };
+
+    // 👉 instantly show message (no delay feeling)
+    setMessages((prev) => [...prev, newMsg]);
+
+    await supabase.from("messages").insert([newMsg]);
 
     setText("");
   }
 
+  // =========================
+  // 📎 SEND FILE
+  // =========================
   async function sendFile(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -73,37 +75,74 @@ export default function Chat({ user }) {
 
     const url = await uploadToCloudinary(file, type);
 
-    await supabase.from("messages").insert([
-      {
-        sender: user,
-        media_url: url,
-        media_type: type,
-      },
-    ]);
+    const newMsg = {
+      sender: user,
+      media_url: url,
+      media_type: type,
+    };
+
+    setMessages((prev) => [...prev, newMsg]);
+
+    await supabase.from("messages").insert([newMsg]);
   }
 
   return (
-    <div className="chat-page">
+    <div style={styles.page}>
 
-      <div className="topbar">
-        <h2>Cherry 🍒 {unread > 0 && `(${unread})`}</h2>
+      {/* TOP BAR */}
+      <div style={styles.topbar}>
+        💜 Cherry Chat
       </div>
 
-      <div className="messages">
-        {messages.map((msg) => (
-          <Message key={msg.id} msg={msg} currentUser={user} />
-        ))}
+      {/* MESSAGES */}
+      <div style={styles.messages}>
+        {messages.map((msg, i) => {
+          const isMine = msg.sender === user;
+
+          return (
+            <div
+              key={i}
+              style={{
+                ...styles.bubble,
+                alignSelf: isMine ? "flex-end" : "flex-start",
+                background: isMine ? "#7b2cbf" : "#2a2a3d",
+                color: "white",
+              }}
+            >
+              {msg.text && <div>{msg.text}</div>}
+
+              {msg.media_url && (
+                <>
+                  {msg.media_type === "image" && (
+                    <img src={msg.media_url} style={styles.media} />
+                  )}
+
+                  {msg.media_type === "video" && (
+                    <video controls src={msg.media_url} style={styles.media} />
+                  )}
+
+                  {msg.media_type === "audio" && (
+                    <audio controls src={msg.media_url} />
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      <div className="composer">
-
+      {/* INPUT */}
+      <div style={styles.composer}>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type message..."
+          style={styles.input}
         />
 
-        <button onClick={sendText}>➤</button>
+        <button onClick={sendText} style={styles.btn}>
+          ➤
+        </button>
 
         <input
           type="file"
@@ -112,11 +151,80 @@ export default function Chat({ user }) {
           style={{ display: "none" }}
         />
 
-        <button onClick={() => fileRef.current.click()}>
+        <button
+          onClick={() => fileRef.current.click()}
+          style={styles.btn}
+        >
           📎
         </button>
-
       </div>
     </div>
   );
 }
+
+// =========================
+// 🎨 STYLES
+// =========================
+const styles = {
+  page: {
+    height: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    background: "#0f0f17",
+    fontFamily: "sans-serif",
+  },
+
+  topbar: {
+    padding: 15,
+    color: "white",
+    background: "#161625",
+    fontWeight: "bold",
+  },
+
+  messages: {
+    flex: 1,
+    padding: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    overflowY: "auto",
+  },
+
+  bubble: {
+    maxWidth: "70%",
+    padding: "10px 14px",
+    borderRadius: 12,
+    fontSize: 14,
+    wordBreak: "break-word",
+  },
+
+  media: {
+    width: "100%",
+    borderRadius: 10,
+    marginTop: 5,
+  },
+
+  composer: {
+    display: "flex",
+    padding: 10,
+    gap: 8,
+    background: "#161625",
+  },
+
+  input: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    border: "none",
+    outline: "none",
+  },
+
+  btn: {
+    padding: "10px 12px",
+    background: "#7b2cbf",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+};

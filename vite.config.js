@@ -7,15 +7,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg"],
       manifest: {
         name: "Loved 💜 Chat App",
         short_name: "Loved",
-        description: "Private chat between two people",
-        theme_color: "#7b2cbf",
-        background_color: "#0f0f17",
-        display: "standalone",
         start_url: "/",
+        display: "standalone",
+        background_color: "#0f0f17",
+        theme_color: "#7b2cbf",
         icons: [
           {
             src: "/icon-192.png",
