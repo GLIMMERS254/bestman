@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "../services/supabase";
+import { uploadToCloudinary } from "../services/cloudinary";
 import Message from "../components/Message";
 
 export default function Chat({ user }) {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
-  const [openChat, setOpenChat] = useState(false);
+  const fileRef = useRef();
 
   useEffect(() => {
     loadMessages();
@@ -25,9 +26,7 @@ export default function Chat({ user }) {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, []);
 
   async function loadMessages() {
@@ -39,100 +38,71 @@ export default function Chat({ user }) {
     setMessages(data || []);
   }
 
-  async function sendMessage() {
+  async function sendText() {
     if (!text.trim()) return;
 
     await supabase.from("messages").insert([
-      {
-        sender: user,
-        text,
-      },
+      { sender: user, text }
     ]);
 
     setText("");
   }
 
-  if (!openChat) {
-    return (
-      <div className="chat-list-page">
-        <div className="topbar">
-          <h2>Loved 💜</h2>
-        </div>
+  async function sendFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-        <div
-          className="chat-card"
-          onClick={() => setOpenChat(true)}
-        >
-          <div className="avatar">
-            🍒
-          </div>
+    let type = "image";
 
-          <div>
-            <h3>Cherry</h3>
-            <p>
-              Open your private conversation
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    if (file.type.startsWith("video")) type = "video";
+    if (file.type.startsWith("audio")) type = "video";
+
+    const url = await uploadToCloudinary(file, type);
+
+    await supabase.from("messages").insert([
+      {
+        sender: user,
+        media_url: url,
+        media_type: type,
+      },
+    ]);
   }
 
   return (
     <div className="chat-page">
 
       <div className="topbar">
-
-        <button
-          onClick={() => setOpenChat(false)}
-        >
-          ←
-        </button>
-
-        <div>
-          <h2 style={{ margin: 0 }}>
-            Cherry 🍒
-          </h2>
-
-          <small>
-            Private Chat
-          </small>
-        </div>
-
+        <h2>Cherry 🍒</h2>
       </div>
 
       <div className="messages">
-
         {messages.map((msg) => (
-          <Message
-            key={msg.id}
-            msg={msg}
-            currentUser={user}
-          />
+          <Message key={msg.id} msg={msg} currentUser={user} />
         ))}
-
       </div>
 
       <div className="composer">
 
         <input
-          placeholder="Type a message..."
           value={text}
-          onChange={(e) =>
-            setText(e.target.value)
-          }
-          onKeyDown={(e) =>
-            e.key === "Enter" &&
-            sendMessage()
-          }
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Type message..."
         />
 
-        <button onClick={sendMessage}>
-          ➤
+        <button onClick={sendText}>➤</button>
+
+        <input
+          type="file"
+          ref={fileRef}
+          onChange={sendFile}
+          style={{ display: "none" }}
+        />
+
+        <button onClick={() => fileRef.current.click()}>
+          📎
         </button>
 
       </div>
-
     </div>
   );
 }
