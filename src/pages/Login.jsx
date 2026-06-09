@@ -3,14 +3,22 @@ import { supabase } from "../services/supabase";
 
 export default function Login() {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
   async function login() {
     if (!email) return;
 
+    setLoading(true);
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
     });
+
+    setLoading(false);
 
     if (!error) {
       setSent(true);
@@ -19,46 +27,33 @@ export default function Login() {
 
   return (
     <div className="login-screen">
+      <div className="login-card">
 
-      <div className="login-overlay">
+        <div className="logo">💜</div>
 
-        <div className="login-card">
+        <h1>Loved</h1>
+        <p>Private chat for Raymond & Cherry 🍒</p>
 
-          <div className="logo">
-            💜
+        {!sent ? (
+          <>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <button onClick={login} disabled={loading}>
+              {loading ? "Sending..." : "Continue"}
+            </button>
+          </>
+        ) : (
+          <div className="success">
+            📩 Check your email to continue login
           </div>
-
-          <h1>Loved</h1>
-
-          <p>
-            Raymond & Cherry 🍒
-          </p>
-
-          {!sent ? (
-            <>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
-              />
-
-              <button onClick={login}>
-                Continue
-              </button>
-            </>
-          ) : (
-            <div className="success-box">
-              📧 Check your email and tap the login link.
-            </div>
-          )}
-
-        </div>
+        )}
 
       </div>
-
     </div>
   );
 }
