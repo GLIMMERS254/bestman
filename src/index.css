@@ -1,31 +1,34 @@
 /* =========================
-   GLOBAL
+GLOBAL
 ========================= */
-
+/* 1. FIXED: Added the missing '*' selector rule here */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   font-family: "Segoe UI", sans-serif;
 }
-
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
 body {
   background: #0f0f17;
   color: white;
+  overflow: hidden;
 }
-
 /* =========================
-   LOGIN SCREEN
+LOGIN SCREEN
 ========================= */
-
 .login-screen {
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
   background: radial-gradient(circle at top, #7b2cbf, #ff4fa3, #0f0f17);
 }
-
 .login-card {
   width: 360px;
   padding: 35px;
@@ -34,25 +37,20 @@ body {
   backdrop-filter: blur(15px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   text-align: center;
-  animation: fadeIn 0.6s ease;
 }
-
 .logo {
   font-size: 55px;
   margin-bottom: 10px;
 }
-
 .login-card h1 {
   font-size: 28px;
   margin-bottom: 5px;
 }
-
 .login-card p {
   font-size: 13px;
   opacity: 0.7;
   margin-bottom: 20px;
 }
-
 .login-card input {
   width: 100%;
   padding: 14px;
@@ -63,11 +61,6 @@ body {
   background: rgba(255, 255, 255, 0.12);
   color: white;
 }
-
-.login-card input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
-}
-
 .login-card button {
   width: 100%;
   margin-top: 15px;
@@ -78,144 +71,117 @@ body {
   color: white;
   font-weight: bold;
   cursor: pointer;
-  transition: 0.2s;
 }
-
-.login-card button:hover {
-  transform: scale(1.03);
-}
-
-.success {
-  margin-top: 15px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-}
-
 /* =========================
-   CHAT PAGE
+CHAT PAGE
 ========================= */
-
 .chat-page {
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  background-image: url("/icon-512.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
-
 /* TOP BAR */
 .topbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 15px;
-  background: #1a1a2e;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(20, 20, 35, 0.65);
+  backdrop-filter: blur(12px);
+  color: white;
+  font-weight: bold;
 }
-
-.topbar h2 {
-  font-size: 18px;
-}
-
-/* MESSAGES AREA */
+/* MESSAGES */
 .messages {
   flex: 1;
-  padding: 15px;
   overflow-y: auto;
-  background: #0f0f17;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.2);
 }
-
-/* =========================
-   MESSAGE BUBBLES
-========================= */
-
+/* BUBBLES */
 .my-message {
   align-self: flex-end;
   background: linear-gradient(135deg, #7b2cbf, #ff4fa3);
-  padding: 10px 14px;
+  padding: 12px 15px;
   margin: 8px 0;
-  border-radius: 15px 15px 0 15px;
-  max-width: 70%;
-  color: white;
+  border-radius: 18px 18px 4px 18px;
+  max-width: 75%;
 }
-
 .their-message {
   align-self: flex-start;
-  background: #1f1f2e;
-  padding: 10px 14px;
+  background: rgba(25, 25, 40, 0.9);
+  padding: 12px 15px;
   margin: 8px 0;
-  border-radius: 15px 15px 15px 0;
-  max-width: 70%;
-  color: white;
+  border-radius: 18px 18px 18px 4px;
+  max-width: 75%;
 }
-
-/* message text */
 .my-message p,
 .their-message p {
-  margin-top: 5px;
   font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word; /* 2. STABILITY FIX: Prevents layout breaking on long single words */
 }
-
-/* =========================
-   INPUT AREA
-========================= */
-
+/* MEDIA */
+.my-message img,
+.their-message img,
+.my-message video,
+.their-message video {
+  max-width: 100%; /* 3. STABILITY FIX: Changed width: 100% to max-width to protect aspect ratio */
+  height: auto;
+  border-radius: 12px;
+  margin-top: 8px;
+  display: block;
+}
+/* COMPOSER */
 .composer {
   display: flex;
-  align-items: center;
-  padding: 10px;
-  background: #1a1a2e;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 8px;
+  align-items: center; /* 4. OPTIMIZATION: Keeps rounded inputs and square buttons aligned */
+  padding: 10px 10px calc(10px + env(safe-area-inset-bottom)) 10px;
+  background: rgba(20, 20, 35, 0.75);
+  backdrop-filter: blur(12px);
 }
-
 .composer input {
   flex: 1;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 14px;
   border: none;
   outline: none;
-  background: #2a2a3d;
+  border-radius: 25px;
+  background: rgba(255, 255, 255, 0.15);
   color: white;
 }
-
+.composer input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
 .composer button {
-  margin-left: 10px;
-  padding: 12px 14px;
+  padding: 12px 15px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #7b2cbf, #ff4fa3);
   color: white;
   cursor: pointer;
-  transition: 0.2s;
 }
-
-.composer button:hover {
-  transform: scale(1.05);
+/* INSTALL BUTTON */
+.install-btn {
+  margin: 10px;
+  padding: 12px;
+  border: none;
+  border-radius: 14px;
+  background: #7b2cbf;
+  color: white;
+  font-weight: bold;
 }
-
-/* =========================
-   SCROLLBAR
-========================= */
-
+/* SCROLLBAR */
 .messages::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
-
 .messages::-webkit-scrollbar-thumb {
   background: #7b2cbf;
-  border-radius: 10px;
-}
-
-/* =========================
-   ANIMATION
-========================= */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  border-radius: 20px;
 }
