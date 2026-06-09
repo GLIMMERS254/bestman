@@ -5,13 +5,15 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 
+import OneSignal from "react-onesignal";
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [entered, setEntered] = useState(false);
 
   // =========================
-  // 🔐 GET CURRENT SESSION
+  // 🔐 GET SESSION
   // =========================
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -19,7 +21,6 @@ export default function App() {
       setLoading(false);
     });
 
-    // listen for login/logout changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -30,7 +31,7 @@ export default function App() {
   }, []);
 
   // =========================
-  // 🧠 TRACK FIRST ENTRY
+  // 🧠 FIRST ENTRY CHECK
   // =========================
   useEffect(() => {
     const seen = localStorage.getItem("entered");
@@ -38,7 +39,23 @@ export default function App() {
   }, []);
 
   // =========================
-  // 🚀 LOADING SCREEN
+  // 🔔 PUSH PERMISSION (IMPORTANT FIX)
+  // =========================
+  useEffect(() => {
+    if (session) {
+      // run ONLY when user logs in
+      setTimeout(() => {
+        try {
+          OneSignal.Slidedown.promptPush();
+        } catch (err) {
+          console.log("Push prompt error:", err);
+        }
+      }, 3000); // delay so UI loads first
+    }
+  }, [session]);
+
+  // =========================
+  // ⏳ LOADING
   // =========================
   if (loading) {
     return (
@@ -54,7 +71,7 @@ export default function App() {
   if (!session) return <Login />;
 
   // =========================
-  // 🏠 FIRST TIME → DASHBOARD
+  // 🏠 FIRST TIME DASHBOARD
   // =========================
   if (!entered) {
     return (
@@ -68,13 +85,13 @@ export default function App() {
   }
 
   // =========================
-  // 💬 MAIN CHAT (EVERY NEXT TIME)
+  // 💬 CHAT SCREEN
   // =========================
   return <Chat user={session.user.email} />;
 }
 
 // =========================
-// 🎨 SIMPLE LOADING STYLE
+// 🎨 STYLE
 // =========================
 const styles = {
   center: {
