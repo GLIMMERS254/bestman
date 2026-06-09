@@ -1,116 +1,221 @@
-body {
+/* =========================
+   GLOBAL
+========================= */
+
+* {
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
   font-family: "Segoe UI", sans-serif;
+}
+
+body {
   background: #0f0f17;
   color: white;
 }
 
-/* LOGIN */
+/* =========================
+   LOGIN SCREEN
+========================= */
+
 .login-screen {
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: radial-gradient(circle at top, #7b2cbf, #1a1a2e);
+  background: radial-gradient(circle at top, #7b2cbf, #ff4fa3, #0f0f17);
 }
 
 .login-card {
-  width: 350px;
+  width: 360px;
+  padding: 35px;
+  border-radius: 25px;
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  padding: 30px;
-  border-radius: 20px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   text-align: center;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  animation: fadeIn 0.6s ease;
 }
 
 .logo {
-  font-size: 50px;
+  font-size: 55px;
+  margin-bottom: 10px;
 }
 
 .login-card h1 {
-  margin: 10px 0 5px;
+  font-size: 28px;
+  margin-bottom: 5px;
 }
 
 .login-card p {
   font-size: 13px;
   opacity: 0.7;
+  margin-bottom: 20px;
 }
 
 .login-card input {
   width: 100%;
-  padding: 12px;
-  margin-top: 15px;
+  padding: 14px;
   border-radius: 12px;
   border: none;
   outline: none;
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+.login-card input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .login-card button {
   width: 100%;
   margin-top: 15px;
-  padding: 12px;
-  border: none;
+  padding: 14px;
   border-radius: 12px;
-  background: #7b2cbf;
+  border: none;
+  background: linear-gradient(135deg, #7b2cbf, #ff4fa3);
   color: white;
-  cursor: pointer;
   font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
 .login-card button:hover {
-  background: #9d4edd;
+  transform: scale(1.03);
 }
 
 .success {
-  margin-top: 20px;
-  background: rgba(255,255,255,0.1);
+  margin-top: 15px;
   padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
 }
 
-/* CHAT (clean base for next steps) */
+/* =========================
+   CHAT PAGE
+========================= */
+
 .chat-page {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #0f0f17;
 }
 
+/* TOP BAR */
 .topbar {
-  padding: 15px;
-  background: #1a1a2e;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 15px;
+  background: #1a1a2e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.topbar h2 {
+  font-size: 18px;
+}
+
+/* MESSAGES AREA */
 .messages {
   flex: 1;
-  overflow-y: auto;
   padding: 15px;
+  overflow-y: auto;
+  background: #0f0f17;
 }
+
+/* =========================
+   MESSAGE BUBBLES
+========================= */
+
+.my-message {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #7b2cbf, #ff4fa3);
+  padding: 10px 14px;
+  margin: 8px 0;
+  border-radius: 15px 15px 0 15px;
+  max-width: 70%;
+  color: white;
+}
+
+.their-message {
+  align-self: flex-start;
+  background: #1f1f2e;
+  padding: 10px 14px;
+  margin: 8px 0;
+  border-radius: 15px 15px 15px 0;
+  max-width: 70%;
+  color: white;
+}
+
+/* message text */
+.my-message p,
+.their-message p {
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+/* =========================
+   INPUT AREA
+========================= */
 
 .composer {
   display: flex;
+  align-items: center;
   padding: 10px;
   background: #1a1a2e;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .composer input {
   flex: 1;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: none;
   outline: none;
+  background: #2a2a3d;
+  color: white;
 }
 
 .composer button {
   margin-left: 10px;
-  padding: 12px 15px;
+  padding: 12px 14px;
   border: none;
-  border-radius: 10px;
-  background: #7b2cbf;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7b2cbf, #ff4fa3);
   color: white;
   cursor: pointer;
+  transition: 0.2s;
+}
+
+.composer button:hover {
+  transform: scale(1.05);
+}
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+.messages::-webkit-scrollbar {
+  width: 5px;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: #7b2cbf;
+  border-radius: 10px;
+}
+
+/* =========================
+   ANIMATION
+========================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

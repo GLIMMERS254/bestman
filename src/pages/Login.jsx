@@ -27,33 +27,45 @@ export default function Login() {
 
   return (
     <div className="login-screen">
+
       <div className="login-card">
 
         <div className="logo">💜</div>
 
         <h1>Loved</h1>
-        <p>Private chat for Raymond & Cherry 🍒</p>
+
+        <p>Raymond & Cherry 🍒 Private Chat</p>
 
         {!sent ? (
           <>
             <input
               type="email"
-              placeholder="Enter your email"
+              placeholder="type your email... example@gmail.com"
               value={email}
+              autoComplete="email"
+              autoFocus
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") login();
+              }}
             />
 
             <button onClick={login} disabled={loading}>
-              {loading ? "Sending..." : "Continue"}
+              {loading ? "Sending link..." : "Continue"}
             </button>
+
+            <small style={{ opacity: 0.6 }}>
+              We will send a login link to your email
+            </small>
           </>
         ) : (
           <div className="success">
-            📩 Check your email to continue login
+            📩 Check your email and click the login link
           </div>
         )}
 
       </div>
+
     </div>
   );
 }

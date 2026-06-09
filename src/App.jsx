@@ -1,38 +1,32 @@
 import { useEffect, useState } from "react";
+import { supabase } from "./services/supabase";
 import Login from "./pages/Login";
 import Chat from "./pages/Chat";
-import { supabase } from "./services/supabase";
 
-function App() {
+export default function App() {
   const [session, setSession] = useState(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(
-      ({ data: { session } }) => {
-        setSession(session);
-      }
-    );
+    // get current session
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+    });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
+    // listen for login/logout changes
+    const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   return session ? (
-    <Chat
-      user={
-        session.user.email
-      }
-    />
+    <Chat user={session.user.email} />
   ) : (
     <Login />
   );
 }
-
-export default App;
