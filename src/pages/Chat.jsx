@@ -8,6 +8,7 @@ export default function Chat({ user }) {
   const [messages, setMessages] = useState([]);
   const [unread, setUnread] = useState(0);
   const [installPrompt, setInstallPrompt] = useState(null);
+
   const fileRef = useRef();
   const bottomRef = useRef(null);
 
@@ -18,16 +19,21 @@ export default function Chat({ user }) {
     audio.play();
   };
 
+  // =========================
+  // LOAD MESSAGES
+  // =========================
   async function loadMessages() {
     const { data } = await supabase
       .from("messages")
       .select("*")
       .order("id", { ascending: true });
+
     setMessages(data || []);
   }
 
   useEffect(() => {
     loadMessages();
+
     const channel = supabase
       .channel("messages")
       .on(
@@ -51,52 +57,83 @@ export default function Chat({ user }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]); // Added user to dependency array since it is used inside
+  }, [user]);
 
+  // =========================
+  // AUTO SCROLL
+  // =========================
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // =========================
+  // PWA INSTALL PROMPT
+  // =========================
   useEffect(() => {
     const handler = (e) => {
       e.preventDefault();
       setInstallPrompt(e);
     };
+
     window.addEventListener("beforeinstallprompt", handler);
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    return () =>
+      window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   async function installApp() {
     if (!installPrompt) return;
+
     installPrompt.prompt();
     await installPrompt.userChoice;
+
     setInstallPrompt(null);
   }
 
+  // =========================
+  // SEND TEXT (INSTANT UI FIX)
+  // =========================
   async function sendText() {
     if (!text.trim()) return;
-    await supabase.from("messages").insert([
-      {
-        sender: user,
-        text,
-      },
-    ]);
 
+    const newMsg = {
+      id: Date.now(),
+      sender: user,
+      text,
+      created_at: new Date().toISOString(),
+    };
+
+    // instant UI
+    setMessages((prev) => [...prev, newMsg]);
     setText("");
+
+    await supabase.from("messages").insert([
+      { sender: user, text },
+    ]);
   }
 
+  // =========================
+  // SEND FILE
+  // =========================
   async function sendFile(e) {
     const file = e.target.files[0];
     if (!file) return;
+
     let type = "image";
 
     if (file.type.startsWith("video")) type = "video";
     if (file.type.startsWith("audio")) type = "audio";
 
     const url = await uploadToCloudinary(file, type);
+
+    const newMsg = {
+      id: Date.now(),
+      sender: user,
+      media_url: url,
+      media_type: type,
+    };
+
+    setMessages((prev) => [...prev, newMsg]);
 
     await supabase.from("messages").insert([
       {
@@ -119,7 +156,7 @@ export default function Chat({ user }) {
         backgroundPosition: "center",
       }}
     >
-      {/* 1. FIXED: Added closing tag to topbar div so it correctly wraps only the header text */}
+      {/* TOP BAR */}
       <div
         className="topbar"
         style={{
@@ -127,10 +164,10 @@ export default function Chat({ user }) {
           backdropFilter: "blur(10px)",
         }}
       >
-        {/* 2. FIXED: Fixed the template literal syntax inside HTML prose */}
         Cherry 🍒 {unread > 0 && `(${unread})`}
       </div>
 
+      {/* MESSAGES */}
       <div
         className="messages"
         style={{
@@ -139,42 +176,50 @@ export default function Chat({ user }) {
           background: "rgba(0,0,0,0.25)",
         }}
       >
-        {messages.map((msg) => (
-          <Message key={msg.id} msg={msg} currentUser={user} />
+        {messages.map((msg, i) => (
+          <Message key={msg.id || i} msg={msg} currentUser={user} />
         ))}
 
-        <div ref={bottomRef}></div>
+        <div ref={bottomRef} />
       </div>
 
+      {/* INSTALL BUTTON (BOTTOM FIXED FEEL) */}
       {installPrompt && (
-        <button
-          onClick={installApp}
-          style={{
-            margin: "10px",
-            border: "none",
-            borderRadius: "12px",
-            padding: "12px",
-            background: "#7b2cbf",
-            color: "white",
-            fontWeight: "bold",
-          }}
-        >
-          📱 Install Loved
-        </button>
+        <div style={{ padding: "10px" }}>
+          <button
+            onClick={installApp}
+            style={{
+              width: "100%",
+              border: "none",
+              borderRadius: "12px",
+              padding: "14px",
+              background: "#7b2cbf",
+              color: "white",
+              fontWeight: "bold",
+            }}
+          >
+            📱 Install Loved App
+          </button>
+        </div>
       )}
 
+      {/* COMPOSER */}
       <div
         className="composer"
         style={{
-          padding: "10px 10px calc(10px + env(safe-area-inset-bottom)) 10px",
+          padding:
+            "10px 10px calc(10px + env(safe-area-inset-bottom)) 10px",
           background: "rgba(0,0,0,0.75)",
           backdropFilter: "blur(12px)",
+          display: "flex",
+          gap: "8px",
         }}
       >
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type message..."
+          style={{ flex: 1 }}
         />
 
         <button onClick={sendText}>➤</button>
@@ -186,7 +231,9 @@ export default function Chat({ user }) {
           style={{ display: "none" }}
         />
 
-        <button onClick={() => fileRef.current.click()}>📎</button>
+        <button onClick={() => fileRef.current.click()}>
+          📎
+        </button>
       </div>
     </div>
   );
