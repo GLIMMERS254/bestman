@@ -1,13 +1,60 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>loved</title>
+
+    <title>Loved 💜</title>
+
+    <!-- PWA SETTINGS -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#7b2cbf" />
+
+    <!-- basic styling fallback -->
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: #0f0f17;
+        color: white;
+      }
+
+      #root {
+        height: 100vh;
+      }
+
+      .boot {
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        background: radial-gradient(circle at top, #7b2cbf, #ff4fa3);
+      }
+
+      .boot h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+
+      .boot p {
+        opacity: 0.8;
+        font-size: 13px;
+      }
+    </style>
   </head>
+
   <body>
     <div id="root"></div>
+
+    <!-- fallback if JS off -->
+    <noscript>
+      <div class="boot">
+        <h1>Loved 💜</h1>
+        <p>Please enable JavaScript</p>
+      </div>
+    </noscript>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
