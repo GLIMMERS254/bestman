@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "Loved 💜 Chat App",
+        name: "Loved Chat 💜",
         short_name: "Loved",
         start_url: "/",
         display: "standalone",

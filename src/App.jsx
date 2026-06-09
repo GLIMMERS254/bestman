@@ -12,35 +12,54 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [entered, setEntered] = useState(false);
 
+  // =========================
+  // 🔐 GET USER SESSION
+  // =========================
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
+  // =========================
+  // 🧠 CHECK FIRST TIME ENTRY
+  // =========================
   useEffect(() => {
     const seen = localStorage.getItem("entered");
     if (seen) setEntered(true);
   }, []);
 
-  // 🔔 PUSH PROMPT (ONLY ONCE AFTER LOGIN)
+  // =========================
+  // 🔔 ONE SIGNAL PUSH (LOGIN EFFECT)
+  // =========================
   useEffect(() => {
     if (session) {
+      // wait for UI to fully load
       setTimeout(() => {
         try {
-          OneSignal.Slidedown.promptPush();
-        } catch (e) {
-          console.log(e);
+          // ask permission for push notifications
+          OneSignal.Notifications.requestPermission();
+
+          console.log("🔔 Push permission requested");
+        } catch (error) {
+          console.log("OneSignal error:", error);
         }
       }, 2500);
     }
   }, [session]);
 
+  // =========================
+  // ⏳ LOADING SCREEN
+  // =========================
   if (loading) {
     return (
       <div style={styles.center}>
@@ -49,8 +68,16 @@ export default function App() {
     );
   }
 
-  if (!session) return <Login />;
+  // =========================
+  // 🔓 NOT LOGGED IN → LOGIN PAGE
+  // =========================
+  if (!session) {
+    return <Login />;
+  }
 
+  // =========================
+  // 🏠 FIRST TIME DASHBOARD FLOW
+  // =========================
   if (!entered) {
     return (
       <Dashboard
@@ -62,9 +89,15 @@ export default function App() {
     );
   }
 
+  // =========================
+  // 💬 MAIN CHAT SCREEN
+  // =========================
   return <Chat user={session.user.email} />;
 }
 
+// =========================
+// 🎨 SIMPLE LOADING STYLE
+// =========================
 const styles = {
   center: {
     height: "100vh",
@@ -73,5 +106,6 @@ const styles = {
     alignItems: "center",
     background: "#0f0f17",
     color: "white",
+    fontFamily: "sans-serif",
   },
 };
