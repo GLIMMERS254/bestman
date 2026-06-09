@@ -14,7 +14,7 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: "https://bestman-fsn5.vercel.app",
       },
     });
 
@@ -22,12 +22,13 @@ export default function Login() {
 
     if (!error) {
       setSent(true);
+    } else {
+      alert(error.message);
     }
   }
 
   return (
     <div className="login-screen">
-
       <div className="login-card">
 
         <div className="logo">💜</div>
@@ -40,7 +41,7 @@ export default function Login() {
           <>
             <input
               type="email"
-              placeholder="type your email... example@gmail.com"
+              placeholder="Enter your email"
               value={email}
               autoComplete="email"
               autoFocus
@@ -53,10 +54,6 @@ export default function Login() {
             <button onClick={login} disabled={loading}>
               {loading ? "Sending link..." : "Continue"}
             </button>
-
-            <small style={{ opacity: 0.6 }}>
-              We will send a login link to your email
-            </small>
           </>
         ) : (
           <div className="success">
@@ -65,7 +62,6 @@ export default function Login() {
         )}
 
       </div>
-
     </div>
   );
 }
