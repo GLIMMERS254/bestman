@@ -3,28 +3,31 @@ import { useState } from "react";
 export default function Login({ onLogin }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
-  const submit = (e) => {
-    e.preventDefault();
-
-    if (!name.trim()) return setError("Enter name");
+  const handleLogin = () => {
+    if (!name) return alert("Enter name");
 
     if (password !== "15.01.2026") {
-      return setError("Wrong password");
+      alert("Wrong password");
+      return;
     }
 
+    localStorage.setItem("user", name);
     onLogin(name);
   };
 
   return (
     <div className="login-screen">
-      <form className="login-card" onSubmit={submit}>
 
-        <h1>Welcome {name || "Cherry / Raymond"}</h1>
+      <div className="login-card">
+
+        <div className="logo">💚</div>
+
+        <h1>Cherry & Raymond</h1>
+        <p>Private Chat System</p>
 
         <input
-          placeholder="Enter name"
+          placeholder="Enter name (Cherry / Raymond)"
           onChange={(e) => setName(e.target.value)}
         />
 
@@ -34,11 +37,12 @@ export default function Login({ onLogin }) {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        <button onClick={handleLogin}>
+          Enter Chat
+        </button>
 
-        <button>Enter Chat</button>
+      </div>
 
-      </form>
     </div>
   );
 }

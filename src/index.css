@@ -2,61 +2,39 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: Arial, sans-serif;
+  font-family: Arial;
 }
 
-html, body, #root {
-  height: 100%;
-  width: 100%;
+body {
+  background: #e5ddd5;
 }
 
-/* =========================
-CHAT LAYOUT
-========================= */
 .chat-page {
   display: flex;
   height: 100vh;
-  background: #dfeeea;
 }
 
-/* =========================
-CHAT LIST
-========================= */
+/* CHAT LIST */
 .chat-list {
   width: 25%;
-  background: #075e54;
-  color: white;
-  padding: 10px;
+  background: white;
+  border-right: 1px solid #ccc;
 }
 
-.chat-list div {
-  padding: 10px;
-  margin: 5px 0;
-  background: rgba(255,255,255,0.1);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* =========================
-CHAT MAIN
-========================= */
+/* CHAT MAIN */
 .chat-main {
-  flex: 1;
+  width: 75%;
   display: flex;
   flex-direction: column;
-  background-image: url("/app.jpg");
-  background-size: cover;
-  background-position: center;
 }
 
 /* TOP BAR */
 .topbar {
   background: #075e54;
   color: white;
-  padding: 12px;
+  padding: 10px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
 }
 
 /* MESSAGES */
@@ -64,29 +42,27 @@ CHAT MAIN
   flex: 1;
   overflow-y: auto;
   padding: 10px;
-  background: rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
 }
 
-/* MY MESSAGE */
 .my-msg {
+  align-self: flex-end;
   background: #dcf8c6;
-  padding: 10px;
-  margin: 6px;
+  padding: 8px;
+  margin: 5px;
   border-radius: 10px;
-  max-width: 70%;
-  margin-left: auto;
 }
 
-/* THEIR MESSAGE */
 .their-msg {
+  align-self: flex-start;
   background: white;
-  padding: 10px;
-  margin: 6px;
+  padding: 8px;
+  margin: 5px;
   border-radius: 10px;
-  max-width: 70%;
 }
 
-/* INPUT BAR */
+/* COMPOSER */
 .composer {
   display: flex;
   padding: 10px;
@@ -95,40 +71,57 @@ CHAT MAIN
 
 .composer input {
   flex: 1;
-  padding: 10px;
-  border-radius: 20px;
-  border: none;
+  padding: 8px;
 }
 
-/* =========================
-CALL UI
-========================= */
-.call-overlay {
+/* VIDEO CALL */
+.video-call {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.85);
-  color: white;
+  background: black;
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-direction: column;
-  z-index: 999;
 }
 
-.call-box {
-  background: #075e54;
-  padding: 20px;
-  border-radius: 15px;
-  text-align: center;
-}
-
-.call-buttons button {
-  margin: 10px;
-  padding: 10px 20px;
-  border: none;
+.local-video {
+  width: 120px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
   border-radius: 10px;
-  cursor: pointer;
+}
+
+.remote-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.end-call {
+  position: absolute;
+  bottom: 20px;
+  background: red;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 20px;
+}
+
+/* VOICE RECORD */
+.recording {
+  background: red;
+  color: white;
+  text-align: center;
+  padding: 5px;
+}
+
+/* TYPING */
+.typing {
+  font-size: 12px;
+  padding: 5px;
+  opacity: 0.7;
 }

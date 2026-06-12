@@ -1,19 +1,48 @@
 const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
 const cors = require("cors");
+const mongoose = require("mongoose");
+const socketIo = require("socket.io");
+require("dotenv").config();
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 const server = http.createServer(app);
 
-const io = new Server(server, {
+const io = socketIo(server, {
   cors: { origin: "*" }
 });
 
+// =========================
+// MONGODB CONNECT
+// =========================
+mongoose.connect(process.env.MONGO_URL)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
+
+// =========================
+// MESSAGE MODEL
+// =========================
+const Message = mongoose.model("Message", {
+  sender: String,
+  receiver: String,
+  text: String,
+  type: String,
+  url: String,
+  status: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+// =========================
+// USERS ONLINE
+// =========================
 let users = {};
 
+// =========================
+// SOCKET LOGIC
+// =========================
 io.on("connection", (socket) => {
 
   socket.on("join", (user) => {
@@ -21,45 +50,67 @@ io.on("connection", (socket) => {
     io.emit("online-users", Object.keys(users));
   });
 
-  socket.on("message", (msg) => {
-    const receiver = users[msg.receiver];
+  // =========================
+  // LOAD CHAT HISTORY
+  // =========================
+  socket.on("load-messages", async ({ user, target }) => {
+    const msgs = await Message.find({
+      $or: [
+        { sender: user, receiver: target },
+        { sender: target, receiver: user }
+      ]
+    });
 
-    if (receiver) {
-      io.to(receiver).emit("message", msg);
+    socket.emit("chat-history", msgs);
+  });
 
-      io.to(receiver).emit("message-status", {
+  // =========================
+  // SEND MESSAGE + SAVE DB
+  // =========================
+  socket.on("message", async (msg) => {
+
+    await Message.create(msg);
+
+    const receiverSocket = users[msg.receiver];
+
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("message", msg);
+
+      io.to(receiverSocket).emit("message-status", {
         id: msg.id,
         status: "delivered"
       });
     }
   });
 
-  socket.on("seen", (id) => {
-    socket.broadcast.emit("message-status", {
-      id,
-      status: "seen"
-    });
-  });
-
+  // =========================
+  // TYPING
+  // =========================
   socket.on("typing", (data) => {
     const receiver = users[data.to];
     if (receiver) io.to(receiver).emit("typing", data);
   });
 
-  socket.on("call-user", (data) => {
-    const receiver = users[data.to];
-    if (receiver) io.to(receiver).emit("incoming-call", data);
+  // =========================
+  // VIDEO CALL SIGNALING
+  // =========================
+  socket.on("video-offer", (data) => {
+    const r = users[data.to];
+    if (r) io.to(r).emit("video-offer", data);
   });
 
-  socket.on("accept-call", (data) => {
-    const caller = users[data.from];
-    if (caller) io.to(caller).emit("call-accepted");
+  socket.on("video-answer", (data) => {
+    const r = users[data.to];
+    if (r) io.to(r).emit("video-answer", data);
   });
 
-  socket.on("end-call", () => {
-    socket.broadcast.emit("call-ended");
+  socket.on("end-video", (data) => {
+    socket.broadcast.emit("end-video");
   });
 
+  // =========================
+  // DISCONNECT
+  // =========================
   socket.on("disconnect", () => {
     for (let u in users) {
       if (users[u] === socket.id) delete users[u];
