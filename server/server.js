@@ -9,122 +9,65 @@ app.use(cors());
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: "*" }
 });
 
-// =========================
-// USERS MEMORY
-// =========================
 let users = {};
 
-// =========================
-// SOCKET CONNECTION
-// =========================
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
 
-  // =========================
-  // JOIN USER
-  // =========================
-  socket.on("join", (username) => {
-    users[username] = socket.id;
-
+  socket.on("join", (user) => {
+    users[user] = socket.id;
     io.emit("online-users", Object.keys(users));
   });
 
-  // =========================
-  // SEND MESSAGE
-  // =========================
   socket.on("message", (msg) => {
-    const receiverSocket = users[msg.receiver];
+    const receiver = users[msg.receiver];
 
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("message", msg);
+    if (receiver) {
+      io.to(receiver).emit("message", msg);
 
-      // mark as delivered
-      io.to(receiverSocket).emit("message-status", {
+      io.to(receiver).emit("message-status", {
         id: msg.id,
         status: "delivered"
       });
     }
   });
 
-  // =========================
-  // MESSAGE SEEN
-  // =========================
-  socket.on("seen", (msgId) => {
+  socket.on("seen", (id) => {
     socket.broadcast.emit("message-status", {
-      id: msgId,
+      id,
       status: "seen"
     });
   });
 
-  // =========================
-  // CALL USER
-  // =========================
+  socket.on("typing", (data) => {
+    const receiver = users[data.to];
+    if (receiver) io.to(receiver).emit("typing", data);
+  });
+
   socket.on("call-user", (data) => {
-    const targetSocket = users[data.to];
-
-    if (targetSocket) {
-      io.to(targetSocket).emit("incoming-call", {
-        from: data.from
-      });
-    }
+    const receiver = users[data.to];
+    if (receiver) io.to(receiver).emit("incoming-call", data);
   });
 
-  // =========================
-  // ACCEPT CALL
-  // =========================
   socket.on("accept-call", (data) => {
-    const callerSocket = users[data.from];
-
-    if (callerSocket) {
-      io.to(callerSocket).emit("call-accepted", {
-        from: data.from
-      });
-    }
+    const caller = users[data.from];
+    if (caller) io.to(caller).emit("call-accepted");
   });
 
-  // =========================
-  // END CALL
-  // =========================
-  socket.on("end-call", (data) => {
+  socket.on("end-call", () => {
     socket.broadcast.emit("call-ended");
   });
 
-  // =========================
-  // LEAVE
-  // =========================
-  socket.on("leave", (username) => {
-    delete users[username];
-    io.emit("online-users", Object.keys(users));
-  });
-
-  // =========================
-  // DISCONNECT
-  // =========================
   socket.on("disconnect", () => {
-    for (let user in users) {
-      if (users[user] === socket.id) {
-        delete users[user];
-        break;
-      }
+    for (let u in users) {
+      if (users[u] === socket.id) delete users[u];
     }
-
     io.emit("online-users", Object.keys(users));
-
-    console.log("User disconnected:", socket.id);
   });
 });
 
-// =========================
-// START SERVER
-// =========================
-const PORT = process.env.PORT || 5000;
-
-server.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+server.listen(5000, () => {
+  console.log("Server running on 5000");
 });

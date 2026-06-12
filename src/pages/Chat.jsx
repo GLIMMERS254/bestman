@@ -13,23 +13,17 @@ export default function Chat({
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
 
-  // =========================
-  // CALL STATE
-  // =========================
-  const [callState, setCallState] = useState(null);
+  const [typing, setTyping] = useState(false);
 
-  // =========================
-  // VOICE RECORDING STATE
-  // =========================
   const [recording, setRecording] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
 
   const recorderRef = useRef(null);
-  const chunksRef = useRef(null);
+  const chunksRef = useRef([]);
   const timerRef = useRef(null);
 
   // =========================
-  // FILTER CHAT (PRIVATE CHAT FIX)
+  // FILTER CHAT ONLY
   // =========================
   const chatMessages = messages.filter(
     (m) =>
@@ -38,18 +32,35 @@ export default function Chat({
   );
 
   // =========================
-  // SOCKET RECEIVE
+  // SOCKET RECEIVE MESSAGE
   // =========================
   useEffect(() => {
     socket.on("message", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });
 
-    return () => socket.off("message");
-  }, []);
+    socket.on("message-status", ({ id, status }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, status } : m))
+      );
+    });
+
+    socket.on("typing", ({ from }) => {
+      if (from === activeChat) {
+        setTyping(true);
+        setTimeout(() => setTyping(false), 1200);
+      }
+    });
+
+    return () => {
+      socket.off("message");
+      socket.off("message-status");
+      socket.off("typing");
+    };
+  }, [activeChat]);
 
   // =========================
-  // SEND TEXT
+  // SEND MESSAGE
   // =========================
   const sendMessage = () => {
     if (!text.trim()) return;
@@ -65,12 +76,26 @@ export default function Chat({
     };
 
     setMessages((prev) => [...prev, msg]);
+
     socket.emit("message", msg);
+
     setText("");
   };
 
   // =========================
-  // SEND IMAGE
+  // TYPING EVENT
+  // =========================
+  const handleTyping = (e) => {
+    setText(e.target.value);
+
+    socket.emit("typing", {
+      from: user,
+      to: activeChat
+    });
+  };
+
+  // =========================
+  // IMAGE SEND
   // =========================
   const sendImage = (e) => {
     const file = e.target.files[0];
@@ -88,11 +113,12 @@ export default function Chat({
     };
 
     setMessages((prev) => [...prev, msg]);
+
     socket.emit("message", msg);
   };
 
   // =========================
-  // 🎤 START RECORDING WITH TIMER
+  // VOICE RECORDING (WITH TIMER)
   // =========================
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -121,6 +147,7 @@ export default function Chat({
       };
 
       setMessages((prev) => [...prev, msg]);
+
       socket.emit("message", msg);
 
       setRecordTime(0);
@@ -129,15 +156,11 @@ export default function Chat({
     recorderRef.current.start();
     setRecording(true);
 
-    // TIMER START
     timerRef.current = setInterval(() => {
       setRecordTime((t) => t + 1);
     }, 1000);
   };
 
-  // =========================
-  // STOP RECORDING
-  // =========================
   const stopRecording = () => {
     recorderRef.current?.stop();
     setRecording(false);
@@ -148,19 +171,16 @@ export default function Chat({
   // =========================
   // FORMAT TIME
   // =========================
-  const formatTime = (s) => {
-    const min = Math.floor(s / 60);
+  const format = (s) => {
+    const m = Math.floor(s / 60);
     const sec = s % 60;
-    return `${min}:${sec < 10 ? "0" : ""}${sec}`;
+    return `${m}:${sec < 10 ? "0" : ""}${sec}`;
   };
 
-  // =========================
-  // UI
-  // =========================
   return (
     <div className="chat-page">
 
-      {/* CHAT LIST */}
+      {/* LEFT CHATLIST */}
       <ChatList
         users={onlineUsers.length ? onlineUsers : ["Cherry", "Raymond"]}
         active={activeChat}
@@ -170,21 +190,23 @@ export default function Chat({
       {/* MAIN CHAT */}
       <div className="chat-main">
 
-        {/* TOP BAR */}
+        {/* TOP */}
         <div className="topbar">
-          💬 {user} chatting with {activeChat}
+          💬 {user} → {activeChat}
           <button onClick={onLogout}>Logout</button>
         </div>
 
-        {/* RECORDING UI */}
+        {/* TYPING */}
+        {typing && (
+          <div style={{ fontSize: 12, padding: 5 }}>
+            {activeChat} is typing...
+          </div>
+        )}
+
+        {/* RECORDING */}
         {recording && (
-          <div style={{
-            background: "red",
-            color: "white",
-            padding: 5,
-            textAlign: "center"
-          }}>
-            🎤 Recording... {formatTime(recordTime)}
+          <div style={{ background: "red", color: "white", padding: 5 }}>
+            🎤 Recording... {format(recordTime)}
           </div>
         )}
 
@@ -205,7 +227,11 @@ export default function Chat({
                 </>
               )}
 
-              <small>{m.status}</small>
+              <small>
+                {m.status === "sent" && "✓ sent"}
+                {m.status === "delivered" && "✓✓ delivered"}
+                {m.status === "seen" && "✓✓ seen"}
+              </small>
 
             </div>
           ))}
@@ -217,7 +243,7 @@ export default function Chat({
 
           <input
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTyping}
             placeholder="Message..."
           />
 
@@ -225,7 +251,6 @@ export default function Chat({
 
           <input type="file" onChange={sendImage} />
 
-          {/* HOLD TO RECORD */}
           <button
             onMouseDown={startRecording}
             onMouseUp={stopRecording}
