@@ -1,12 +1,10 @@
 {
   "name": "Loved Chat",
   "short_name": "Loved",
-  "description": "Private chat application",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f17",
   "theme_color": "#7b2cbf",
-  "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192.png",

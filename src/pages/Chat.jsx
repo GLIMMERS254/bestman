@@ -1,24 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../services/supabase";
-import { uploadToCloudinary } from "../services/cloudinary";
-import Message from "../components/Message";
 
-export default function Chat({ user }) {
+export default function Chat({ user, chatId }) {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
-  const [unread, setUnread] = useState(0);
-  const [installPrompt, setInstallPrompt] = useState(null);
+  const [typing, setTyping] = useState(false);
+  const [typingUser, setTypingUser] = useState(null);
 
-  const fileRef = useRef();
   const bottomRef = useRef(null);
-
-  // 🔊 sound
-  const playSound = () => {
-    const audio = new Audio(
-      "https://actions.google.com/sounds/v1/notifications/notification_2.ogg"
-    );
-    audio.play();
-  };
 
   // =========================
   // LOAD MESSAGES
@@ -27,39 +16,36 @@ export default function Chat({ user }) {
     const { data } = await supabase
       .from("messages")
       .select("*")
-      .order("id", { ascending: true });
+      .eq("chat_id", chatId)
+      .order("created_at", { ascending: true });
 
     setMessages(data || []);
   }
 
   // =========================
-  // REALTIME LISTENER
+  // REALTIME MESSAGES
   // =========================
   useEffect(() => {
     loadMessages();
 
     const channel = supabase
-      .channel("messages")
+      .channel("chat-room")
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
+          filter: `chat_id=eq.${chatId}`,
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
-
-          if (payload.new.sender !== user) {
-            setUnread((prev) => prev + 1);
-            playSound();
-          }
         }
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user]);
+  }, [chatId]);
 
   // =========================
   // AUTO SCROLL
@@ -69,183 +55,121 @@ export default function Chat({ user }) {
   }, [messages]);
 
   // =========================
-  // PWA INSTALL BUTTON
+  // TYPING UPDATE
   // =========================
-  useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-    };
+  async function handleTyping(value) {
+    setText(value);
+    setTyping(true);
 
-    window.addEventListener("beforeinstallprompt", handler);
+    await supabase
+      .from("profiles")
+      .update({ typing: true })
+      .eq("email", user);
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+    setTimeout(() => setTyping(false), 1000);
+  }
 
-  async function installApp() {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    await installPrompt.userChoice;
-    setInstallPrompt(null);
+  async function stopTyping() {
+    await supabase
+      .from("profiles")
+      .update({ typing: false })
+      .eq("email", user);
   }
 
   // =========================
-  // SEND TEXT (INSTANT + PUSH)
+  // SEND MESSAGE (INSTANT)
   // =========================
   async function sendText() {
     if (!text.trim()) return;
 
-    const tempMsg = {
-      id: Date.now(),
+    const newMsg = {
+      chat_id: chatId,
       sender: user,
       text,
-      created_at: new Date().toISOString(),
     };
 
-    // ⚡ INSTANT UI (WhatsApp style)
-    setMessages((prev) => [...prev, tempMsg]);
+    // instant UI (WhatsApp style)
+    setMessages((prev) => [...prev, newMsg]);
     setText("");
 
-    // 💾 save to database
-    await supabase.from("messages").insert([
-      {
-        sender: user,
-        text,
-      },
-    ]);
-
-    // 📲 trigger push notification
-    await fetch(
-      "https://ihqpdlkwipxnnzpkjmlb.supabase.co/functions/v1/send-push",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sender: user,
-          message: text,
-        }),
-      }
-    );
-  }
-
-  // =========================
-  // SEND FILE
-  // =========================
-  async function sendFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    let type = "image";
-
-    if (file.type.startsWith("video")) type = "video";
-    if (file.type.startsWith("audio")) type = "audio";
-
-    const url = await uploadToCloudinary(file, type);
-
-    const newMsg = {
-      id: Date.now(),
-      sender: user,
-      media_url: url,
-      media_type: type,
-    };
-
-    setMessages((prev) => [...prev, newMsg]);
+    stopTyping();
 
     await supabase.from("messages").insert([newMsg]);
   }
 
+  // =========================
+  // MARK READ
+  // =========================
+  useEffect(() => {
+    supabase
+      .from("messages")
+      .update({ read: true })
+      .eq("chat_id", chatId)
+      .eq("receiver", user);
+  }, [chatId]);
+
+  // =========================
+  // UI
+  // =========================
   return (
-    <div
-      className="chat-page"
-      style={{
-        height: "100dvh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundImage: "url('/icon-512.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
+    <div className="chat-page">
+
       {/* TOP BAR */}
-      <div
-        className="topbar"
-        style={{
-          background: "rgba(0,0,0,0.6)",
-          backdropFilter: "blur(10px)",
-        }}
-      >
-        Cherry 🍒 {unread > 0 && `(${unread})`}
+      <div className="topbar">
+        💬 Chat
       </div>
 
       {/* MESSAGES */}
-      <div
-        className="messages"
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          background: "rgba(0,0,0,0.25)",
-          padding: 10,
-        }}
-      >
-        {messages.map((msg) => (
-          <Message key={msg.id} msg={msg} currentUser={user} />
-        ))}
+      <div className="messages">
+
+        {messages.map((msg, i) => {
+          const isMine = msg.sender === user;
+
+          return (
+            <div
+              key={i}
+              style={{
+                alignSelf: isMine ? "flex-end" : "flex-start",
+                background: isMine ? "#7b2cbf" : "#2a2a3d",
+                color: "white",
+                padding: 10,
+                margin: 5,
+                borderRadius: 10,
+                maxWidth: "70%",
+              }}
+            >
+              {msg.text}
+
+              {msg.read && isMine && (
+                <div style={{ fontSize: 10 }}>✔✔</div>
+              )}
+            </div>
+          );
+        })}
+
+        {typingUser && (
+          <div style={{ fontSize: 12, opacity: 0.6 }}>
+            typing...
+          </div>
+        )}
 
         <div ref={bottomRef} />
       </div>
 
-      {/* INSTALL BUTTON */}
-      {installPrompt && (
-        <button
-          onClick={installApp}
-          style={{
-            margin: 10,
-            padding: 12,
-            borderRadius: 12,
-            background: "#7b2cbf",
-            color: "white",
-            border: "none",
-          }}
-        >
-          📱 Install App
-        </button>
-      )}
+      {/* INPUT */}
+      <div className="composer">
 
-      {/* COMPOSER */}
-      <div
-        className="composer"
-        style={{
-          display: "flex",
-          padding: "10px 10px calc(10px + env(safe-area-inset-bottom)) 10px",
-          background: "rgba(0,0,0,0.75)",
-          backdropFilter: "blur(12px)",
-        }}
-      >
         <input
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => handleTyping(e.target.value)}
+          onBlur={stopTyping}
           placeholder="Type message..."
-          style={{
-            flex: 1,
-            padding: 12,
-            borderRadius: 10,
-            border: "none",
-            outline: "none",
-          }}
         />
 
-        <button onClick={sendText}>➤</button>
+        <button onClick={sendText}>
+          ➤
+        </button>
 
-        <input
-          type="file"
-          ref={fileRef}
-          onChange={sendFile}
-          style={{ display: "none" }}
-        />
-
-        <button onClick={() => fileRef.current.click()}>📎</button>
       </div>
     </div>
   );

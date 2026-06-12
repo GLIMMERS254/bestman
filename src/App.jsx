@@ -4,80 +4,69 @@ import { supabase } from "./services/supabase";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
+import ChatList from "./pages/ChatList";
 
 import OneSignal from "react-onesignal";
 
 export default function App() {
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [entered, setEntered] = useState(false);
+  const [selectedChat, setSelectedChat] = useState(null);
 
-  // =========================
-  // 🔐 GET USER SESSION
-  // =========================
+  // AUTH
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setLoading(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange((_e, session) => {
       setSession(session);
     });
-
-    return () => subscription.unsubscribe();
   }, []);
 
-  // =========================
-  // 🧠 CHECK FIRST TIME ENTRY
-  // =========================
+  // FIRST TIME
   useEffect(() => {
-    const seen = localStorage.getItem("entered");
-    if (seen) setEntered(true);
+    if (localStorage.getItem("entered")) {
+      setEntered(true);
+    }
   }, []);
 
-  // =========================
-  // 🔔 ONE SIGNAL PUSH (LOGIN EFFECT)
-  // =========================
+  // ONLINE STATUS (STEP 7)
+  useEffect(() => {
+    if (!session) return;
+
+    supabase
+      .from("profiles")
+      .update({ online: true })
+      .eq("email", session.user.email);
+  }, [session]);
+
+  // OFFLINE
+  useEffect(() => {
+    const offline = () => {
+      supabase
+        .from("profiles")
+        .update({
+          online: false,
+          last_seen: new Date().toISOString(),
+        })
+        .eq("email", session?.user?.email);
+    };
+
+    window.addEventListener("beforeunload", offline);
+    return () => window.removeEventListener("beforeunload", offline);
+  }, [session]);
+
+  // PUSH LOGIN
   useEffect(() => {
     if (session) {
-      // wait for UI to fully load
-      setTimeout(() => {
-        try {
-          // ask permission for push notifications
-          OneSignal.Notifications.requestPermission();
-
-          console.log("🔔 Push permission requested");
-        } catch (error) {
-          console.log("OneSignal error:", error);
-        }
-      }, 2500);
+      OneSignal.Notifications.requestPermission();
+      OneSignal.login(session.user.email);
     }
   }, [session]);
 
-  // =========================
-  // ⏳ LOADING SCREEN
-  // =========================
-  if (loading) {
-    return (
-      <div style={styles.center}>
-        Loading...
-      </div>
-    );
-  }
+  if (!session) return <Login />;
 
-  // =========================
-  // 🔓 NOT LOGGED IN → LOGIN PAGE
-  // =========================
-  if (!session) {
-    return <Login />;
-  }
-
-  // =========================
-  // 🏠 FIRST TIME DASHBOARD FLOW
-  // =========================
   if (!entered) {
     return (
       <Dashboard
@@ -89,23 +78,19 @@ export default function App() {
     );
   }
 
-  // =========================
-  // 💬 MAIN CHAT SCREEN
-  // =========================
-  return <Chat user={session.user.email} />;
-}
+  if (!selectedChat) {
+    return (
+      <ChatList
+        user={session.user.email}
+        openChat={(chat) => setSelectedChat(chat)}
+      />
+    );
+  }
 
-// =========================
-// 🎨 SIMPLE LOADING STYLE
-// =========================
-const styles = {
-  center: {
-    height: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "#0f0f17",
-    color: "white",
-    fontFamily: "sans-serif",
-  },
-};
+  return (
+    <Chat
+      user={session.user.email}
+      chatId={selectedChat.id}
+    />
+  );
+}

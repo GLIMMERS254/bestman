@@ -7,7 +7,7 @@ serve(async (req) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Key YOUR_ONESIGNAL_APP_API_KEY",
+      Authorization: "Key os_v2_app_sgf3r2syhbhmrnflsxitaqkwpfendcvay7lucgfsngg6rvfzokjmpludqmjo2aef5jmu3yjkkfrdybbhex3h52x44eklebc47iuewza",
     },
     body: JSON.stringify({
       app_id: "918bb8ea-5838-4ec8-b4ab-95d130415679",

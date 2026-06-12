@@ -7,8 +7,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      includeAssets: ["icon-192.png", "icon-512.png"],
       manifest: {
-        name: "Loved Chat 💜",
+        name: "Loved Chat",
         short_name: "Loved",
         start_url: "/",
         display: "standalone",
