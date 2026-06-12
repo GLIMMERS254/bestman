@@ -1,66 +1,45 @@
 import { useState } from "react";
-import { supabase } from "../services/supabase";
 
-export default function Login() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+export default function Login({ onLogin }) {
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
 
-  async function login() {
-    if (!email) return;
+  const SECRET = "15.01.2026";
 
-    setLoading(true);
+  function handleLogin() {
+    if (!name || !password) return;
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: "https://bestman-fsn5.vercel.app",
-      },
-    });
-
-    setLoading(false);
-
-    if (!error) {
-      setSent(true);
+    if (password === SECRET) {
+      localStorage.setItem("user", name);
+      onLogin(name);
     } else {
-      alert(error.message);
+      alert("Wrong password");
     }
   }
 
   return (
     <div className="login-screen">
       <div className="login-card">
-
         <div className="logo">💜</div>
+        <h1>Cherry & Raymond</h1>
+        <p>Private Chat App</p>
 
-        <h1>Loved</h1>
+        <input
+          placeholder="Enter name (Cherry / Raymond)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
 
-        <p>Raymond & Cherry 🍒 Private Chat</p>
+        <input
+          type="password"
+          placeholder="Enter password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-        {!sent ? (
-          <>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              autoComplete="email"
-              autoFocus
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") login();
-              }}
-            />
-
-            <button onClick={login} disabled={loading}>
-              {loading ? "Sending link..." : "Continue"}
-            </button>
-          </>
-        ) : (
-          <div className="success">
-            📩 Check your email and click the login link
-          </div>
-        )}
-
+        <button onClick={handleLogin}>
+          Enter Chat
+        </button>
       </div>
     </div>
   );

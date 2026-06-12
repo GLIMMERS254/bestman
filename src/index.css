@@ -1,24 +1,23 @@
-/* =========================
-GLOBAL
-========================= */
-/* 1. FIXED: Added the missing '*' selector rule here */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   font-family: "Segoe UI", sans-serif;
 }
+
 html,
 body,
 #root {
   width: 100%;
   height: 100%;
 }
+
 body {
-  background: #0f0f17;
+  background: #0b141a;
   color: white;
   overflow: hidden;
 }
+
 /* =========================
 LOGIN SCREEN
 ========================= */
@@ -27,51 +26,51 @@ LOGIN SCREEN
   display: flex;
   justify-content: center;
   align-items: center;
-  background: radial-gradient(circle at top, #7b2cbf, #ff4fa3, #0f0f17);
+  background: url("/app.jpg") center/cover no-repeat;
 }
+
 .login-card {
   width: 360px;
   padding: 35px;
   border-radius: 25px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(15px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   text-align: center;
+  color: white;
 }
+
 .logo {
-  font-size: 55px;
+  font-size: 50px;
   margin-bottom: 10px;
 }
+
 .login-card h1 {
-  font-size: 28px;
-  margin-bottom: 5px;
+  font-size: 26px;
 }
-.login-card p {
-  font-size: 13px;
-  opacity: 0.7;
-  margin-bottom: 20px;
-}
+
 .login-card input {
   width: 100%;
   padding: 14px;
+  margin-top: 10px;
   border-radius: 12px;
   border: none;
   outline: none;
-  margin-top: 10px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255,255,255,0.15);
   color: white;
 }
+
 .login-card button {
   width: 100%;
   margin-top: 15px;
   padding: 14px;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #7b2cbf, #ff4fa3);
+  background: #25d366;
   color: white;
   font-weight: bold;
-  cursor: pointer;
 }
+
 /* =========================
 CHAT PAGE
 ========================= */
@@ -79,109 +78,101 @@ CHAT PAGE
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  background-image: url("/icon-512.png");
+  position: relative;
+  background: #0b141a;
+}
+
+/* wallpaper layer */
+.chat-wallpaper {
+  position: absolute;
+  inset: 0;
+  background-image: url("/app.jpg");
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
+  opacity: 0.15;
+  z-index: 0;
 }
+
 /* TOP BAR */
 .topbar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   padding: 15px;
-  background: rgba(20, 20, 35, 0.65);
-  backdrop-filter: blur(12px);
+  background: #075e54;
   color: white;
   font-weight: bold;
+  z-index: 2;
 }
+
 /* MESSAGES */
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 15px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  background: rgba(0, 0, 0, 0.2);
+  gap: 8px;
+  z-index: 2;
 }
-/* BUBBLES */
+
+/* SENT */
 .my-message {
   align-self: flex-end;
-  background: linear-gradient(135deg, #7b2cbf, #ff4fa3);
-  padding: 12px 15px;
-  margin: 8px 0;
-  border-radius: 18px 18px 4px 18px;
+  background: #dcf8c6;
+  color: black;
+  padding: 10px 14px;
+  border-radius: 12px 12px 0 12px;
   max-width: 75%;
 }
+
+/* RECEIVED */
 .their-message {
   align-self: flex-start;
-  background: rgba(25, 25, 40, 0.9);
-  padding: 12px 15px;
-  margin: 8px 0;
-  border-radius: 18px 18px 18px 4px;
+  background: white;
+  color: black;
+  padding: 10px 14px;
+  border-radius: 12px 12px 12px 0;
   max-width: 75%;
 }
-.my-message p,
-.their-message p {
-  font-size: 14px;
-  line-height: 1.4;
-  word-break: break-word; /* 2. STABILITY FIX: Prevents layout breaking on long single words */
-}
+
 /* MEDIA */
 .my-message img,
 .their-message img,
 .my-message video,
 .their-message video {
-  max-width: 100%; /* 3. STABILITY FIX: Changed width: 100% to max-width to protect aspect ratio */
-  height: auto;
-  border-radius: 12px;
-  margin-top: 8px;
-  display: block;
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 5px;
 }
+
 /* COMPOSER */
 .composer {
   display: flex;
+  padding: 10px;
   gap: 8px;
-  align-items: center; /* 4. OPTIMIZATION: Keeps rounded inputs and square buttons aligned */
-  padding: 10px 10px calc(10px + env(safe-area-inset-bottom)) 10px;
-  background: rgba(20, 20, 35, 0.75);
-  backdrop-filter: blur(12px);
+  background: #075e54;
+  z-index: 2;
 }
+
 .composer input {
   flex: 1;
-  padding: 14px;
+  padding: 12px;
+  border-radius: 20px;
   border: none;
   outline: none;
-  border-radius: 25px;
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
 }
-.composer input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
+
 .composer button {
-  padding: 12px 15px;
+  padding: 10px 14px;
+  background: #25d366;
   border: none;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #7b2cbf, #ff4fa3);
+  border-radius: 20px;
   color: white;
-  cursor: pointer;
 }
-/* INSTALL BUTTON */
-.install-btn {
-  margin: 10px;
-  padding: 12px;
-  border: none;
-  border-radius: 14px;
-  background: #7b2cbf;
-  color: white;
-  font-weight: bold;
-}
-/* SCROLLBAR */
+
+/* SCROLL */
 .messages::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 .messages::-webkit-scrollbar-thumb {
-  background: #7b2cbf;
-  border-radius: 20px;
+  background: #25d366;
+  border-radius: 10px;
 }

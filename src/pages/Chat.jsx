@@ -1,13 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../services/supabase";
+import Message from "../components/Message";
 
-export default function Chat({ user, chatId }) {
+export default function Chat({ user }) {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
   const [typing, setTyping] = useState(false);
-  const [typingUser, setTypingUser] = useState(null);
-
-  const bottomRef = useRef(null);
+  const fileRef = useRef();
 
   // =========================
   // LOAD MESSAGES
@@ -16,27 +15,25 @@ export default function Chat({ user, chatId }) {
     const { data } = await supabase
       .from("messages")
       .select("*")
-      .eq("chat_id", chatId)
-      .order("created_at", { ascending: true });
+      .order("id", { ascending: true });
 
     setMessages(data || []);
   }
 
   // =========================
-  // REALTIME MESSAGES
+  // REALTIME
   // =========================
   useEffect(() => {
     loadMessages();
 
     const channel = supabase
-      .channel("chat-room")
+      .channel("messages")
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `chat_id=eq.${chatId}`,
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
@@ -45,115 +42,112 @@ export default function Chat({ user, chatId }) {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [chatId]);
+  }, []);
 
   // =========================
-  // AUTO SCROLL
+  // TYPING INDICATOR (LOCAL)
   // =========================
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (text.length > 0) {
+      setTyping(true);
+      const t = setTimeout(() => setTyping(false), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [text]);
 
   // =========================
-  // TYPING UPDATE
-  // =========================
-  async function handleTyping(value) {
-    setText(value);
-    setTyping(true);
-
-    await supabase
-      .from("profiles")
-      .update({ typing: true })
-      .eq("email", user);
-
-    setTimeout(() => setTyping(false), 1000);
-  }
-
-  async function stopTyping() {
-    await supabase
-      .from("profiles")
-      .update({ typing: false })
-      .eq("email", user);
-  }
-
-  // =========================
-  // SEND MESSAGE (INSTANT)
+  // SEND TEXT
   // =========================
   async function sendText() {
     if (!text.trim()) return;
 
-    const newMsg = {
-      chat_id: chatId,
-      sender: user,
-      text,
-    };
+    await supabase.from("messages").insert([
+      {
+        sender: user,
+        text,
+        delivered: true,
+        seen: false,
+      },
+    ]);
 
-    // instant UI (WhatsApp style)
-    setMessages((prev) => [...prev, newMsg]);
     setText("");
-
-    stopTyping();
-
-    await supabase.from("messages").insert([newMsg]);
   }
 
   // =========================
-  // MARK READ
+  // SEND FILE
   // =========================
-  useEffect(() => {
-    supabase
-      .from("messages")
-      .update({ read: true })
-      .eq("chat_id", chatId)
-      .eq("receiver", user);
-  }, [chatId]);
+  async function sendFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    let type = "image";
+    if (file.type.startsWith("video")) type = "video";
+    if (file.type.startsWith("audio")) type = "audio";
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("YOUR_CLOUDINARY_URL", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    await supabase.from("messages").insert([
+      {
+        sender: user,
+        media_url: data.secure_url,
+        media_type: type,
+        delivered: true,
+        seen: false,
+      },
+    ]);
+  }
 
   // =========================
-  // UI
+  // MARK AS SEEN (REALISTIC SIMPLE VERSION)
   // =========================
+  async function markSeen() {
+    await supabase
+      .from("messages")
+      .update({ seen: true })
+      .neq("sender", user);
+  }
+
+  useEffect(() => {
+    markSeen();
+  }, [messages]);
+
   return (
     <div className="chat-page">
 
+      {/* WALLPAPER */}
+      <div className="chat-wallpaper"></div>
+
       {/* TOP BAR */}
       <div className="topbar">
-        💬 Chat
+        💜 Cherry Chat
       </div>
 
       {/* MESSAGES */}
       <div className="messages">
 
-        {messages.map((msg, i) => {
-          const isMine = msg.sender === user;
+        {messages.map((msg) => (
+          <Message
+            key={msg.id}
+            msg={msg}
+            currentUser={user}
+          />
+        ))}
 
-          return (
-            <div
-              key={i}
-              style={{
-                alignSelf: isMine ? "flex-end" : "flex-start",
-                background: isMine ? "#7b2cbf" : "#2a2a3d",
-                color: "white",
-                padding: 10,
-                margin: 5,
-                borderRadius: 10,
-                maxWidth: "70%",
-              }}
-            >
-              {msg.text}
-
-              {msg.read && isMine && (
-                <div style={{ fontSize: 10 }}>✔✔</div>
-              )}
-            </div>
-          );
-        })}
-
-        {typingUser && (
+        {/* TYPING */}
+        {typing && (
           <div style={{ fontSize: 12, opacity: 0.6 }}>
             typing...
           </div>
         )}
 
-        <div ref={bottomRef} />
       </div>
 
       {/* INPUT */}
@@ -161,13 +155,21 @@ export default function Chat({ user, chatId }) {
 
         <input
           value={text}
-          onChange={(e) => handleTyping(e.target.value)}
-          onBlur={stopTyping}
+          onChange={(e) => setText(e.target.value)}
           placeholder="Type message..."
         />
 
-        <button onClick={sendText}>
-          ➤
+        <button onClick={sendText}>➤</button>
+
+        <input
+          type="file"
+          ref={fileRef}
+          onChange={sendFile}
+          hidden
+        />
+
+        <button onClick={() => fileRef.current.click()}>
+          📎
         </button>
 
       </div>

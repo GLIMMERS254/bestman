@@ -1,19 +1,38 @@
 export default function Message({ msg, currentUser }) {
-  const mine = msg.sender === currentUser;
+  const isMine = msg.sender === currentUser;
 
   return (
-    <div className={mine ? "my-message" : "their-message"}>
+    <div className={isMine ? "my-message" : "their-message"}>
 
-      <strong>{msg.sender}</strong>
-
+      {/* TEXT */}
       {msg.text && <p>{msg.text}</p>}
 
-      {msg.media_type === "image" && (
-        <img src={msg.media_url} width="200" />
+      {/* MEDIA */}
+      {msg.media_url && (
+        <>
+          {msg.media_type === "image" && (
+            <img src={msg.media_url} alt="media" />
+          )}
+
+          {msg.media_type === "video" && (
+            <video controls src={msg.media_url} />
+          )}
+
+          {msg.media_type === "audio" && (
+            <audio controls src={msg.media_url} />
+          )}
+        </>
       )}
 
-      {msg.media_type === "video" && (
-        <video src={msg.media_url} controls width="220" />
+      {/* TICKS SYSTEM */}
+      {isMine && (
+        <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>
+          {msg.seen
+            ? "✔✔ Seen"
+            : msg.delivered
+            ? "✔✔ Delivered"
+            : "✔ Sent"}
+        </div>
       )}
 
     </div>
