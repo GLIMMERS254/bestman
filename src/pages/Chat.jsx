@@ -1,18 +1,49 @@
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ChatList from "./ChatList";
+import { socket } from "../services/socket";
 
 export default function Chat({
   user,
   onlineUsers = [],
   onLogout,
-  startVideoCall,
-  incomingCall,
-  acceptVideoCall,
-  endVideoCall
 }) {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
-  const [activeChat, setActiveChat] = useState("Chat");
+  const [activeChat, setActiveChat] = useState("Cherry");
+
+  // =========================
+  // CALL STATES
+  // =========================
+  const [callState, setCallState] = useState(null); 
+  // null | "calling" | "incoming" | "in-call"
+  const [caller, setCaller] = useState(null);
+
+  const fileRef = useRef();
+
+  // =========================
+  // SOCKET CALL LISTENING
+  // =========================
+  useEffect(() => {
+    socket.on("incoming-call", (data) => {
+      setCaller(data.from);
+      setCallState("incoming");
+    });
+
+    socket.on("call-accepted", () => {
+      setCallState("in-call");
+    });
+
+    socket.on("call-ended", () => {
+      setCallState(null);
+      setCaller(null);
+    });
+
+    return () => {
+      socket.off("incoming-call");
+      socket.off("call-accepted");
+      socket.off("call-ended");
+    };
+  }, []);
 
   // =========================
   // SEND MESSAGE
@@ -20,21 +51,22 @@ export default function Chat({
   const sendMessage = () => {
     if (!text.trim()) return;
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        sender: user,
-        text,
-        type: "text",
-        time: new Date().toLocaleTimeString()
-      }
-    ]);
+    const msg = {
+      sender: user,
+      text,
+      type: "text",
+      time: new Date().toLocaleTimeString()
+    };
+
+    setMessages((prev) => [...prev, msg]);
+
+    socket.emit("message", msg);
 
     setText("");
   };
 
   // =========================
-  // SEND IMAGE (LOCAL PREVIEW)
+  // SEND IMAGE
   // =========================
   const sendImage = (e) => {
     const file = e.target.files[0];
@@ -42,42 +74,75 @@ export default function Chat({
 
     const url = URL.createObjectURL(file);
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        sender: user,
-        type: "image",
-        url,
-        time: new Date().toLocaleTimeString()
-      }
-    ]);
+    const msg = {
+      sender: user,
+      type: "image",
+      url,
+      time: new Date().toLocaleTimeString()
+    };
+
+    setMessages((prev) => [...prev, msg]);
+
+    socket.emit("message", msg);
   };
 
+  // =========================
+  // CALL FUNCTIONS
+  // =========================
+  const startCall = (target) => {
+    setCallState("calling");
+
+    socket.emit("call-user", {
+      from: user,
+      to: target
+    });
+  };
+
+  const acceptCall = () => {
+    socket.emit("accept-call", { from: caller, to: user });
+    setCallState("in-call");
+  };
+
+  const rejectCall = () => {
+    socket.emit("reject-call", { from: user });
+    setCallState(null);
+    setCaller(null);
+  };
+
+  const endCall = () => {
+    socket.emit("end-call", { from: user });
+    setCallState(null);
+    setCaller(null);
+  };
+
+  // =========================
+  // UI
+  // =========================
   return (
     <div className="chat-page">
 
       {/* =========================
-          CHAT LIST (OPTIONAL)
+          CHAT LIST
       ========================= */}
       <ChatList
-        users={onlineUsers.length ? onlineUsers : ["Chat"]}
+        users={onlineUsers.length ? onlineUsers : ["Cherry", "Raymond"]}
         activeUser={activeChat}
         setActiveUser={setActiveChat}
       />
 
       {/* =========================
-          CHAT AREA (GREEN THEME)
+          CHAT MAIN
       ========================= */}
-      <div className="chat-main-green">
+      <div className="chat-main">
 
         {/* TOP BAR */}
-        <div className="topbar-green">
+        <div className="topbar">
           <div>
-            💚 <b>{user}</b>
+            💬 {user} chatting with {activeChat}
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => startVideoCall(activeChat)}>
+          <div>
+            <button onClick={() => startCall(activeChat)}>
               📹 Call
             </button>
 
@@ -87,69 +152,90 @@ export default function Chat({
           </div>
         </div>
 
-        {/* INCOMING CALL */}
-        {incomingCall && (
-          <div className="call-popup">
-            📞 Call from <b>{incomingCall.from}</b>
+        {/* =========================
+            CALL UI OVERLAY
+        ========================= */}
+        {callState && (
+          <div className="call-overlay">
 
-            <div style={{ marginTop: 10 }}>
-              <button onClick={acceptVideoCall}>Accept</button>
-              <button onClick={endVideoCall}>Reject</button>
+            <div className="call-box">
+
+              {callState === "calling" && (
+                <h2>📞 Calling {activeChat}...</h2>
+              )}
+
+              {callState === "incoming" && (
+                <>
+                  <h2>📞 Incoming Call from {caller}</h2>
+
+                  <div className="call-buttons">
+                    <button onClick={acceptCall}>
+                      Accept
+                    </button>
+
+                    <button onClick={rejectCall}>
+                      Reject
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {callState === "in-call" && (
+                <>
+                  <h2>📹 In Call with {caller || activeChat}</h2>
+
+                  <button onClick={endCall}>
+                    End Call
+                  </button>
+                </>
+              )}
+
             </div>
           </div>
         )}
 
         {/* =========================
-            MESSAGES (ONLY YOUR CHAT)
+            MESSAGES
         ========================= */}
-        <div className="messages-green">
-
-          {messages.length === 0 && (
-            <p style={{ opacity: 0.6 }}>
-              Start your conversation 💬
-            </p>
-          )}
+        <div className="messages">
 
           {messages.map((m, i) => (
-            <div key={i} style={{ textAlign: "right" }}>
+            <div key={i} className={m.sender === user ? "my-msg" : "their-msg"}>
 
-              <div className="my-bubble-green">
+              {m.type === "text" && <div>{m.text}</div>}
 
-                {m.type === "text" && <div>{m.text}</div>}
+              {m.type === "image" && (
+                <img src={m.url} style={{ width: 180, borderRadius: 10 }} />
+              )}
 
-                {m.type === "image" && (
-                  <img src={m.url} className="chat-img" />
-                )}
+              <small>{m.time}</small>
 
-                <small>{m.time}</small>
-
-              </div>
             </div>
           ))}
 
         </div>
 
         {/* =========================
-            INPUT BAR
+            INPUT
         ========================= */}
-        <div className="composer-green">
+        <div className="composer">
 
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Message..."
+            placeholder="Type message..."
           />
 
           <button onClick={sendMessage}>➤</button>
 
           <input
             type="file"
-            id="file"
+            ref={fileRef}
             onChange={sendImage}
             hidden
           />
 
-          <button onClick={() => document.getElementById("file").click()}>
+          <button onClick={() => fileRef.current.click()}>
             📎
           </button>
 
