@@ -1,59 +1,50 @@
 import { useEffect, useRef, useState } from "react";
-import ChatList from "../components/ChatList";
 import { socket } from "../services/socket";
 import Peer from "simple-peer";
 
+/**
+ * FULL CHAT SYSTEM
+ */
+
 export default function Chat({ user, onLogout }) {
 
-  // =========================
-  // CHAT STATE
-  // =========================
   const [activeChat, setActiveChat] = useState("Cherry");
-  const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
 
-  // =========================
-  // VOICE STATE
-  // =========================
+  // VOICE
   const [recording, setRecording] = useState(false);
-  const [recordTime, setRecordTime] = useState(0);
+  const [time, setTime] = useState(0);
 
-  const recorderRef = useRef(null);
-  const chunksRef = useRef([]);
-  const timerRef = useRef(null);
+  const recorder = useRef(null);
+  const chunks = useRef([]);
+  const timer = useRef(null);
 
-  // =========================
-  // VIDEO CALL STATE
-  // =========================
+  // VIDEO
   const [stream, setStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
+  const [remote, setRemote] = useState(null);
   const [calling, setCalling] = useState(false);
   const [peer, setPeer] = useState(null);
 
   // =========================
   // FILTER CHAT
   // =========================
-  const chatMessages = messages.filter(
-    (m) =>
+  const chat = messages.filter(
+    m =>
       (m.sender === user && m.receiver === activeChat) ||
       (m.sender === activeChat && m.receiver === user)
   );
 
   // =========================
-  // SOCKET CONNECT
+  // SOCKET LISTEN
   // =========================
   useEffect(() => {
+
     socket.emit("join", user);
 
     socket.on("message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-
-    socket.on("message-status", ({ id, status }) => {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, status } : m))
-      );
+      setMessages(prev => [...prev, msg]);
     });
 
     socket.on("typing", ({ from }) => {
@@ -65,16 +56,16 @@ export default function Chat({ user, onLogout }) {
 
     return () => {
       socket.off("message");
-      socket.off("message-status");
       socket.off("typing");
     };
+
   }, [activeChat]);
 
   // =========================
   // SEND MESSAGE
   // =========================
   const sendMessage = () => {
-    if (!text.trim()) return;
+    if (!text) return;
 
     const msg = {
       id: Date.now(),
@@ -85,7 +76,7 @@ export default function Chat({ user, onLogout }) {
       status: "sent"
     };
 
-    setMessages((prev) => [...prev, msg]);
+    setMessages(prev => [...prev, msg]);
     socket.emit("message", msg);
     setText("");
   };
@@ -116,29 +107,26 @@ export default function Chat({ user, onLogout }) {
       sender: user,
       receiver: activeChat,
       type: "image",
-      url,
-      status: "sent"
+      url
     };
 
-    setMessages((prev) => [...prev, msg]);
+    setMessages(prev => [...prev, msg]);
     socket.emit("message", msg);
   };
 
   // =========================
   // VOICE RECORDING
   // =========================
-  const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const startRecord = async () => {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    recorderRef.current = new MediaRecorder(stream);
-    chunksRef.current = [];
+    recorder.current = new MediaRecorder(s);
+    chunks.current = [];
 
-    recorderRef.current.ondataavailable = (e) => {
-      chunksRef.current.push(e.data);
-    };
+    recorder.current.ondataavailable = e => chunks.current.push(e.data);
 
-    recorderRef.current.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: "audio/mp3" });
+    recorder.current.onstop = () => {
+      const blob = new Blob(chunks.current, { type: "audio/mp3" });
       const url = URL.createObjectURL(blob);
 
       const msg = {
@@ -147,49 +135,40 @@ export default function Chat({ user, onLogout }) {
         receiver: activeChat,
         type: "voice",
         url,
-        duration: recordTime,
-        status: "sent"
+        duration: time
       };
 
-      setMessages((prev) => [...prev, msg]);
+      setMessages(prev => [...prev, msg]);
       socket.emit("message", msg);
 
-      setRecordTime(0);
+      setTime(0);
     };
 
-    recorderRef.current.start();
+    recorder.current.start();
     setRecording(true);
 
-    timerRef.current = setInterval(() => {
-      setRecordTime((t) => t + 1);
+    timer.current = setInterval(() => {
+      setTime(t => t + 1);
     }, 1000);
   };
 
-  const stopRecording = () => {
-    recorderRef.current?.stop();
+  const stopRecord = () => {
+    recorder.current.stop();
     setRecording(false);
-    clearInterval(timerRef.current);
+    clearInterval(timer.current);
   };
 
   // =========================
-  // GET MEDIA
+  // VIDEO CALL (INITIATE)
   // =========================
-  const getMedia = async () => {
+  const startCall = async () => {
+
     const myStream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true
     });
 
     setStream(myStream);
-    return myStream;
-  };
-
-  // =========================
-  // START VIDEO CALL
-  // =========================
-  const startVideoCall = async () => {
-    const myStream = await getMedia();
-
     setCalling(true);
 
     const p = new Peer({
@@ -198,7 +177,7 @@ export default function Chat({ user, onLogout }) {
       stream: myStream
     });
 
-    p.on("signal", (data) => {
+    p.on("signal", data => {
       socket.emit("video-offer", {
         from: user,
         to: activeChat,
@@ -206,8 +185,8 @@ export default function Chat({ user, onLogout }) {
       });
     });
 
-    p.on("stream", (remote) => {
-      setRemoteStream(remote);
+    p.on("stream", remoteStream => {
+      setRemote(remoteStream);
     });
 
     setPeer(p);
@@ -217,9 +196,15 @@ export default function Chat({ user, onLogout }) {
   // RECEIVE CALL
   // =========================
   useEffect(() => {
+
     socket.on("video-offer", async (data) => {
 
-      const myStream = await getMedia();
+      const myStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+
+      setStream(myStream);
       setCalling(true);
 
       const p = new Peer({
@@ -228,151 +213,99 @@ export default function Chat({ user, onLogout }) {
         stream: myStream
       });
 
-      p.on("signal", (answer) => {
+      p.on("signal", answer => {
         socket.emit("video-answer", {
           to: data.from,
           signal: answer
         });
       });
 
-      p.on("stream", (remote) => {
-        setRemoteStream(remote);
+      p.on("stream", remoteStream => {
+        setRemote(remoteStream);
       });
 
       p.signal(data.signal);
       setPeer(p);
     });
 
-    socket.on("video-answer", (data) => {
+    socket.on("video-answer", data => {
       peer?.signal(data.signal);
-    });
-
-    socket.on("end-video", () => {
-      endCall();
     });
 
     return () => {
       socket.off("video-offer");
       socket.off("video-answer");
-      socket.off("end-video");
     };
+
   }, [peer]);
 
   // =========================
   // END CALL
   // =========================
   const endCall = () => {
-    stream?.getTracks().forEach((t) => t.stop());
+    stream?.getTracks().forEach(t => t.stop());
     peer?.destroy();
 
     setCalling(false);
     setStream(null);
-    setRemoteStream(null);
-    setPeer(null);
-
-    socket.emit("end-video");
+    setRemote(null);
   };
 
   return (
     <div className="chat-page">
 
-      {/* CHAT LIST */}
-      <ChatList
-        users={["Cherry", "Raymond"]}
-        active={activeChat}
-        setActive={setActiveChat}
-      />
+      {/* CALL UI */}
+      {calling && (
+        <div className="call-ui">
 
-      {/* MAIN */}
+          {stream && (
+            <video autoPlay muted ref={v => v && (v.srcObject = stream)} />
+          )}
+
+          {remote && (
+            <video autoPlay ref={v => v && (v.srcObject = remote)} />
+          )}
+
+          <button onClick={endCall}>End</button>
+
+        </div>
+      )}
+
+      {/* CHAT LIST */}
+      <div className="chat-list">
+        <div onClick={() => setActiveChat("Cherry")}>Cherry</div>
+        <div onClick={() => setActiveChat("Raymond")}>Raymond</div>
+      </div>
+
+      {/* CHAT AREA */}
       <div className="chat-main">
 
-        {/* TOP BAR */}
         <div className="topbar">
-          💬 {user} → {activeChat}
-
-          <div>
-            <button onClick={startVideoCall}>📹 Call</button>
-            <button onClick={onLogout}>Logout</button>
-          </div>
+          {user} chatting with {activeChat}
+          <button onClick={startCall}>📹 Call</button>
+          <button onClick={onLogout}>Logout</button>
         </div>
 
-        {/* CALL UI */}
-        {calling && (
-          <div className="video-call">
+        {typing && <div className="typing">typing...</div>}
 
-            {stream && (
-              <video
-                autoPlay
-                muted
-                ref={(v) => v && (v.srcObject = stream)}
-                className="local-video"
-              />
-            )}
-
-            {remoteStream && (
-              <video
-                autoPlay
-                ref={(v) => v && (v.srcObject = remoteStream)}
-                className="remote-video"
-              />
-            )}
-
-            <button onClick={endCall} className="end-call">
-              End Call
-            </button>
-
-          </div>
-        )}
-
-        {/* TYPING */}
-        {typing && (
-          <div className="typing">
-            {activeChat} is typing...
-          </div>
-        )}
-
-        {/* VOICE TIMER */}
-        {recording && (
-          <div className="recording">
-            🎤 Recording... {recordTime}s
-          </div>
-        )}
-
-        {/* MESSAGES */}
         <div className="messages">
-
-          {chatMessages.map((m) => (
-            <div key={m.id} className={m.sender === user ? "my-msg" : "their-msg"}>
-
-              {m.type === "text" && <p>{m.text}</p>}
-              {m.type === "image" && <img src={m.url} />}
-              {m.type === "voice" && <audio controls src={m.url} />}
-
-              <small>{m.status}</small>
-
+          {chat.map(m => (
+            <div key={m.id} className={m.sender === user ? "my" : "their"}>
+              {m.text}
             </div>
           ))}
-
         </div>
 
-        {/* INPUT */}
         <div className="composer">
 
-          <input
-            value={text}
-            onChange={handleTyping}
-            placeholder="Message..."
-          />
+          <input value={text} onChange={handleTyping} />
 
-          <button onClick={sendMessage}>➤</button>
+          <button onClick={sendMessage}>Send</button>
 
           <input type="file" onChange={sendImage} />
 
-          <button
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-          >
-            🎤
+          <button onMouseDown={startRecord} onMouseUp={stopRecord}>
+            🎤 {recording ? time : ""}
           </button>
 
         </div>

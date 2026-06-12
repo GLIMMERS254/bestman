@@ -18,13 +18,12 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="login-screen">
-
       <div className="login-card">
 
         <div className="logo">💚</div>
 
         <h1>Cherry & Raymond</h1>
-        <p>Private Chat System</p>
+        <p>Secure Private Chat</p>
 
         <input
           placeholder="Enter name (Cherry / Raymond)"
@@ -33,7 +32,7 @@ export default function Login({ onLogin }) {
 
         <input
           type="password"
-          placeholder="Enter password"
+          placeholder="Password"
           onChange={(e) => setPassword(e.target.value)}
         />
 
@@ -42,7 +41,6 @@ export default function Login({ onLogin }) {
         </button>
 
       </div>
-
     </div>
   );
 }

@@ -16,7 +16,7 @@ const io = socketIo(server, {
 });
 
 // =========================
-// MONGODB CONNECT
+// MONGO CONNECT
 // =========================
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB connected"))
@@ -36,12 +36,12 @@ const Message = mongoose.model("Message", {
 });
 
 // =========================
-// USERS ONLINE
+// USERS
 // =========================
 let users = {};
 
 // =========================
-// SOCKET LOGIC
+// SOCKET
 // =========================
 io.on("connection", (socket) => {
 
@@ -51,9 +51,9 @@ io.on("connection", (socket) => {
   });
 
   // =========================
-  // LOAD CHAT HISTORY
+  // LOAD CHAT HISTORY (SYNC FIX)
   // =========================
-  socket.on("load-messages", async ({ user, target }) => {
+  socket.on("load-chat", async ({ user, target }) => {
     const msgs = await Message.find({
       $or: [
         { sender: user, receiver: target },
@@ -87,8 +87,8 @@ io.on("connection", (socket) => {
   // TYPING
   // =========================
   socket.on("typing", (data) => {
-    const receiver = users[data.to];
-    if (receiver) io.to(receiver).emit("typing", data);
+    const r = users[data.to];
+    if (r) io.to(r).emit("typing", data);
   });
 
   // =========================
@@ -104,7 +104,7 @@ io.on("connection", (socket) => {
     if (r) io.to(r).emit("video-answer", data);
   });
 
-  socket.on("end-video", (data) => {
+  socket.on("end-video", () => {
     socket.broadcast.emit("end-video");
   });
 
@@ -119,6 +119,6 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(5000, () => {
-  console.log("Server running on 5000");
+server.listen(process.env.PORT || 5000, () => {
+  console.log("Server running");
 });
