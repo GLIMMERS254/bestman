@@ -1,216 +1,147 @@
-/* =========================
-GLOBAL RESET
-========================= */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: "Segoe UI", sans-serif;
-}
 
+/* =========================
+   GLOBAL
+========================= */
 body {
+  margin: 0;
+  font-family: Arial, sans-serif;
   background: #0b141a;
   color: white;
-  overflow: hidden;
 }
 
 /* =========================
-LOGIN SCREEN (GREEN THEME)
+   APP WRAPPER
 ========================= */
-.login-screen {
+.app-container {
   height: 100vh;
   display: flex;
-  justify-content: center;
-  align-items: center;
-
-  background: linear-gradient(
-    135deg,
-    #0f3d2e,
-    #128c7e,
-    #25d366
-  );
-}
-
-.login-card {
-  width: 360px;
-  padding: 30px;
-  border-radius: 18px;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
-  text-align: center;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-}
-
-.login-card .logo {
-  font-size: 50px;
-  margin-bottom: 10px;
-}
-
-.login-card h1 {
-  font-size: 22px;
-  margin-bottom: 5px;
-}
-
-.login-card p {
-  font-size: 12px;
-  opacity: 0.7;
-  margin-bottom: 15px;
-}
-
-.login-card input {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 10px;
-  outline: none;
-  background: rgba(255,255,255,0.1);
-  color: white;
-}
-
-.login-card button {
-  width: 100%;
-  margin-top: 15px;
-  padding: 12px;
-  border: none;
-  border-radius: 10px;
-  background: #25d366;
-  color: black;
-  font-weight: bold;
-  cursor: pointer;
+  flex-direction: column;
 }
 
 /* =========================
-ONLINE BAR
+   ONLINE BAR
 ========================= */
 .online-bar {
-  background: #128c7e;
+  background: #111b21;
   padding: 8px;
   text-align: center;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* =========================
-MAIN LAYOUT
+   INSTALL BUTTON
+========================= */
+.install-btn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: #25d366;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 9999;
+}
+
+/* =========================
+   CHAT LAYOUT
 ========================= */
 .chat-layout {
   display: flex;
   height: 100vh;
-
-  /* WALLPAPER FIX (app.jpg) */
-  background-image: url("/app.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-/* dark overlay for readability */
-.chat-layout::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
 }
 
 /* =========================
-SIDEBAR (CHAT LIST)
+   SIDEBAR
 ========================= */
 .sidebar {
-  width: 28%;
-  background: rgba(11,20,26,0.95);
-  backdrop-filter: blur(10px);
-  display: flex;
-  flex-direction: column;
-  z-index: 2;
+  width: 25%;
+  background: #111b21;
+  padding: 10px;
+  overflow-y: auto;
 }
 
 .user-header {
-  padding: 12px;
-  background: #128c7e;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .chat-item {
-  padding: 14px;
+  padding: 10px;
+  margin: 5px 0;
+  background: #202c33;
+  border-radius: 8px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  transition: 0.2s;
-}
-
-.chat-item:hover {
-  background: rgba(37,211,102,0.15);
 }
 
 .chat-item.active {
   background: #25d366;
   color: black;
-  font-weight: bold;
 }
 
 /* =========================
-CHAT CONTAINER
+   CHAT AREA
 ========================= */
 .chat-container {
-  flex: 1;
+  width: 75%;
   display: flex;
   flex-direction: column;
-  z-index: 2;
+  background: url("/app.jpg") center/cover;
 }
 
 /* HEADER */
 .chat-header {
-  background: rgba(18,140,126,0.9);
-  padding: 12px;
+  background: #202c33;
+  padding: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: bold;
 }
 
 /* =========================
-MESSAGES AREA
+   MESSAGES
 ========================= */
 .chat-body {
   flex: 1;
-  padding: 12px;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
+  padding: 10px;
 }
 
-/* MESSAGE BUBBLES */
 .msg {
-  padding: 10px;
-  margin: 6px 0;
-  border-radius: 12px;
   max-width: 60%;
-  position: relative;
-  word-break: break-word;
+  padding: 8px;
+  margin: 6px;
+  border-radius: 10px;
+  word-wrap: break-word;
 }
 
 .msg.me {
-  background: #25d366;
-  color: black;
-  align-self: flex-end;
-  border-bottom-right-radius: 2px;
+  background: #005c4b;
+  margin-left: auto;
 }
 
 .msg.them {
   background: #202c33;
-  align-self: flex-start;
-  border-bottom-left-radius: 2px;
+}
+
+.chat-img {
+  max-width: 200px;
+  border-radius: 10px;
 }
 
 /* =========================
-INPUT AREA
+   INPUT BAR (FIXED)
 ========================= */
 .chat-input {
   display: flex;
   padding: 10px;
-  background: rgba(11,20,26,0.95);
+  background: #111b21;
   gap: 8px;
+  align-items: center;
+  position: sticky;
+  bottom: 0;
 }
 
 .chat-input input {
@@ -219,60 +150,53 @@ INPUT AREA
   border-radius: 20px;
   border: none;
   outline: none;
-  background: #1f2c33;
-  color: white;
-}
-
-.chat-input button {
-  background: #25d366;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 50px;
-  cursor: pointer;
-  color: black;
-  font-weight: bold;
 }
 
 /* =========================
-TYPING
-========================= */
-.typing {
-  font-size: 12px;
-  padding: 5px 12px;
-  opacity: 0.7;
-}
-
-/* =========================
-CALL UI
+   CALL UI
 ========================= */
 .call-ui {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: black;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  z-index: 999;
 }
 
 .call-ui video {
   width: 100%;
-  height: 100%;
+  max-height: 45%;
   object-fit: cover;
 }
 
+.end-call-btn {
+  margin-top: 10px;
+  padding: 10px 15px;
+  background: red;
+  border: none;
+  color: white;
+  border-radius: 10px;
+}
+
 /* =========================
-INSTALL BAR
+   TYPING
 ========================= */
-.install-bar {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  background: #25d366;
-  color: black;
-  display: flex;
-  justify-content: space-between;
-  padding: 10px;
-  z-index: 999;
+.typing {
+  font-size: 12px;
+  opacity: 0.7;
+  padding: 5px;
+}
+
+/* =========================
+   LOADING
+========================= */
+.loading {
+  color: white;
+  text-align: center;
+  margin-top: 50px;
 }
