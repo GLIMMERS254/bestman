@@ -12,12 +12,24 @@ export default function Chat({
   const [activeChat, setActiveChat] = useState("Cherry");
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
-  const [callState, setCallState] = useState(null); // calling | incoming | in-call
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
 
   // =========================
-  // FILTER PRIVATE CHAT (IMPORTANT FIX)
+  // CALL STATE
+  // =========================
+  const [callState, setCallState] = useState(null);
+
+  // =========================
+  // VOICE RECORDING STATE
+  // =========================
+  const [recording, setRecording] = useState(false);
+  const [recordTime, setRecordTime] = useState(0);
+
+  const recorderRef = useRef(null);
+  const chunksRef = useRef(null);
+  const timerRef = useRef(null);
+
+  // =========================
+  // FILTER CHAT (PRIVATE CHAT FIX)
   // =========================
   const chatMessages = messages.filter(
     (m) =>
@@ -26,29 +38,18 @@ export default function Chat({
   );
 
   // =========================
-  // SOCKET MESSAGE RECEIVE
+  // SOCKET RECEIVE
   // =========================
   useEffect(() => {
     socket.on("message", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });
 
-    socket.on("message-status", (data) => {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === data.id ? { ...m, status: data.status } : m
-        )
-      );
-    });
-
-    return () => {
-      socket.off("message");
-      socket.off("message-status");
-    };
+    return () => socket.off("message");
   }, []);
 
   // =========================
-  // SEND MESSAGE (WITH TICKS)
+  // SEND TEXT
   // =========================
   const sendMessage = () => {
     if (!text.trim()) return;
@@ -57,16 +58,14 @@ export default function Chat({
       id: Date.now(),
       sender: user,
       receiver: activeChat,
-      text,
       type: "text",
+      text,
       status: "sent",
       time: new Date().toLocaleTimeString()
     };
 
     setMessages((prev) => [...prev, msg]);
-
     socket.emit("message", msg);
-
     setText("");
   };
 
@@ -85,8 +84,7 @@ export default function Chat({
       receiver: activeChat,
       type: "image",
       url,
-      status: "sent",
-      time: new Date().toLocaleTimeString()
+      status: "sent"
     };
 
     setMessages((prev) => [...prev, msg]);
@@ -94,50 +92,21 @@ export default function Chat({
   };
 
   // =========================
-  // VIDEO CALL
-  // =========================
-  const startCall = () => {
-    setCallState("calling");
-
-    socket.emit("call-user", {
-      from: user,
-      to: activeChat
-    });
-  };
-
-  const acceptCall = () => {
-    socket.emit("accept-call", { from: incomingCall.from });
-    setCallState("in-call");
-    setIncomingCall(null);
-  };
-
-  const rejectCall = () => {
-    socket.emit("reject-call", { from: user });
-    setIncomingCall(null);
-    setCallState(null);
-  };
-
-  const endCall = () => {
-    socket.emit("end-call", { from: user });
-    setCallState(null);
-  };
-
-  // =========================
-  // VOICE NOTES
+  // 🎤 START RECORDING WITH TIMER
   // =========================
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true
     });
 
-    const recorder = new MediaRecorder(stream);
-    mediaRecorderRef.current = recorder;
+    recorderRef.current = new MediaRecorder(stream);
+    chunksRef.current = [];
 
-    recorder.ondataavailable = (e) => {
+    recorderRef.current.ondataavailable = (e) => {
       chunksRef.current.push(e.data);
     };
 
-    recorder.onstop = () => {
+    recorderRef.current.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: "audio/mp3" });
       const url = URL.createObjectURL(blob);
 
@@ -147,65 +116,75 @@ export default function Chat({
         receiver: activeChat,
         type: "voice",
         url,
+        duration: recordTime,
         status: "sent"
       };
 
       setMessages((prev) => [...prev, msg]);
       socket.emit("message", msg);
 
-      chunksRef.current = [];
+      setRecordTime(0);
     };
 
-    recorder.start();
+    recorderRef.current.start();
+    setRecording(true);
+
+    // TIMER START
+    timerRef.current = setInterval(() => {
+      setRecordTime((t) => t + 1);
+    }, 1000);
   };
 
+  // =========================
+  // STOP RECORDING
+  // =========================
   const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
+    recorderRef.current?.stop();
+    setRecording(false);
+
+    clearInterval(timerRef.current);
   };
 
+  // =========================
+  // FORMAT TIME
+  // =========================
+  const formatTime = (s) => {
+    const min = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${min}:${sec < 10 ? "0" : ""}${sec}`;
+  };
+
+  // =========================
+  // UI
+  // =========================
   return (
     <div className="chat-page">
 
-      {/* LEFT */}
+      {/* CHAT LIST */}
       <ChatList
         users={onlineUsers.length ? onlineUsers : ["Cherry", "Raymond"]}
         active={activeChat}
         setActive={setActiveChat}
       />
 
-      {/* RIGHT */}
+      {/* MAIN CHAT */}
       <div className="chat-main">
 
-        {/* TOP */}
+        {/* TOP BAR */}
         <div className="topbar">
-          <div>
-            💬 {user} → {activeChat}
-          </div>
-
-          <div>
-            <button onClick={startCall}>📹 Call</button>
-            <button onClick={onLogout}>Logout</button>
-          </div>
+          💬 {user} chatting with {activeChat}
+          <button onClick={onLogout}>Logout</button>
         </div>
 
-        {/* CALL UI */}
-        {incomingCall && (
-          <div className="call-overlay">
-            📞 Incoming Call from {incomingCall.from}
-
-            <button onClick={acceptCall}>Accept</button>
-            <button onClick={rejectCall}>Reject</button>
-          </div>
-        )}
-
-        {callState === "calling" && (
-          <div className="call-overlay">📞 Calling...</div>
-        )}
-
-        {callState === "in-call" && (
-          <div className="call-overlay">
-            📹 In Call
-            <button onClick={endCall}>End</button>
+        {/* RECORDING UI */}
+        {recording && (
+          <div style={{
+            background: "red",
+            color: "white",
+            padding: 5,
+            textAlign: "center"
+          }}>
+            🎤 Recording... {formatTime(recordTime)}
           </div>
         )}
 
@@ -217,19 +196,16 @@ export default function Chat({
 
               {m.type === "text" && <p>{m.text}</p>}
 
-              {m.type === "image" && (
-                <img src={m.url} width="180" />
-              )}
+              {m.type === "image" && <img src={m.url} width="180" />}
 
               {m.type === "voice" && (
-                <audio controls src={m.url} />
+                <>
+                  <audio controls src={m.url} />
+                  <small>🎧 {m.duration}s</small>
+                </>
               )}
 
-              <small>
-                {m.status === "sent" && "✓ sent"}
-                {m.status === "delivered" && "✓✓ delivered"}
-                {m.status === "seen" && "✓✓ seen"}
-              </small>
+              <small>{m.status}</small>
 
             </div>
           ))}
@@ -249,7 +225,15 @@ export default function Chat({
 
           <input type="file" onChange={sendImage} />
 
-          <button onMouseDown={startRecording} onMouseUp={stopRecording}>
+          {/* HOLD TO RECORD */}
+          <button
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            style={{
+              background: recording ? "red" : "#075e54",
+              color: "white"
+            }}
+          >
             🎤
           </button>
 

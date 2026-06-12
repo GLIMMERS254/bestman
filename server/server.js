@@ -1,25 +1,24 @@
 const express = require("express");
 const http = require("http");
-const cors = require("cors");
 const { Server } = require("socket.io");
-const axios = require("axios");
+const cors = require("cors");
 
 const app = express();
 app.use(cors());
-app.use(express.json());
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
     origin: "*",
-  },
+    methods: ["GET", "POST"]
+  }
 });
 
 // =========================
-// ONLINE USERS
+// USERS MEMORY
 // =========================
-const users = {};
+let users = {};
 
 // =========================
 // SOCKET CONNECTION
@@ -27,76 +26,99 @@ const users = {};
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // USER JOIN
-  socket.on("join", (userId) => {
-    socket.userId = userId;
-    users[userId] = socket.id;
+  // =========================
+  // JOIN USER
+  // =========================
+  socket.on("join", (username) => {
+    users[username] = socket.id;
 
     io.emit("online-users", Object.keys(users));
   });
 
-  // CHAT MESSAGE
-  socket.on("new-message", async (msg) => {
-    io.emit("message-received", msg);
+  // =========================
+  // SEND MESSAGE
+  // =========================
+  socket.on("message", (msg) => {
+    const receiverSocket = users[msg.receiver];
 
-    // OPTIONAL PUSH
-    await sendPush(msg.text || "New message");
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("message", msg);
+
+      // mark as delivered
+      io.to(receiverSocket).emit("message-status", {
+        id: msg.id,
+        status: "delivered"
+      });
+    }
   });
 
+  // =========================
+  // MESSAGE SEEN
+  // =========================
+  socket.on("seen", (msgId) => {
+    socket.broadcast.emit("message-status", {
+      id: msgId,
+      status: "seen"
+    });
+  });
+
+  // =========================
   // CALL USER
+  // =========================
   socket.on("call-user", (data) => {
-    const target = users[data.to];
-    if (target) {
-      io.to(target).emit("incoming-call", data);
+    const targetSocket = users[data.to];
+
+    if (targetSocket) {
+      io.to(targetSocket).emit("incoming-call", {
+        from: data.from
+      });
     }
   });
 
-  socket.on("answer-call", (data) => {
-    const target = users[data.to];
-    if (target) {
-      io.to(target).emit("call-answered", data);
+  // =========================
+  // ACCEPT CALL
+  // =========================
+  socket.on("accept-call", (data) => {
+    const callerSocket = users[data.from];
+
+    if (callerSocket) {
+      io.to(callerSocket).emit("call-accepted", {
+        from: data.from
+      });
     }
   });
 
+  // =========================
+  // END CALL
+  // =========================
   socket.on("end-call", (data) => {
-    const target = users[data.to];
-    if (target) {
-      io.to(target).emit("call-ended");
-    }
+    socket.broadcast.emit("call-ended");
   });
 
+  // =========================
+  // LEAVE
+  // =========================
+  socket.on("leave", (username) => {
+    delete users[username];
+    io.emit("online-users", Object.keys(users));
+  });
+
+  // =========================
   // DISCONNECT
+  // =========================
   socket.on("disconnect", () => {
-    if (socket.userId) {
-      delete users[socket.userId];
-      io.emit("online-users", Object.keys(users));
+    for (let user in users) {
+      if (users[user] === socket.id) {
+        delete users[user];
+        break;
+      }
     }
+
+    io.emit("online-users", Object.keys(users));
+
+    console.log("User disconnected:", socket.id);
   });
 });
-
-// =========================
-// PUSH NOTIFICATION (ONE SIGNAL)
-// =========================
-async function sendPush(message) {
-  try {
-    await axios.post(
-      "https://api.onesignal.com/notifications",
-      {
-        app_id: "918bb8ea-5838-4ec8-b4ab-95d130415679",
-        included_segments: ["All"],
-        headings: { en: "💜 Cherry Chat" },
-        contents: { en: message },
-      },
-      {
-        headers: {
-          Authorization: "Basic YOUR_REST_API_KEY",
-        },
-      }
-    );
-  } catch (err) {
-    console.log("Push error:", err.message);
-  }
-}
 
 // =========================
 // START SERVER
@@ -104,5 +126,5 @@ async function sendPush(message) {
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log("Server running on port", PORT);
 });
