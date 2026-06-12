@@ -12,6 +12,7 @@ export default function Chat({ user }) {
   const fileRef = useRef();
   const bottomRef = useRef(null);
 
+  // 🔊 sound
   const playSound = () => {
     const audio = new Audio(
       "https://actions.google.com/sounds/v1/notifications/notification_2.ogg"
@@ -31,6 +32,9 @@ export default function Chat({ user }) {
     setMessages(data || []);
   }
 
+  // =========================
+  // REALTIME LISTENER
+  // =========================
   useEffect(() => {
     loadMessages();
 
@@ -54,9 +58,7 @@ export default function Chat({ user }) {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, [user]);
 
   // =========================
@@ -67,7 +69,7 @@ export default function Chat({ user }) {
   }, [messages]);
 
   // =========================
-  // PWA INSTALL PROMPT
+  // PWA INSTALL BUTTON
   // =========================
   useEffect(() => {
     const handler = (e) => {
@@ -77,39 +79,55 @@ export default function Chat({ user }) {
 
     window.addEventListener("beforeinstallprompt", handler);
 
-    return () =>
-      window.removeEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   async function installApp() {
     if (!installPrompt) return;
-
     installPrompt.prompt();
     await installPrompt.userChoice;
-
     setInstallPrompt(null);
   }
 
   // =========================
-  // SEND TEXT (INSTANT UI FIX)
+  // SEND TEXT (INSTANT + PUSH)
   // =========================
   async function sendText() {
     if (!text.trim()) return;
 
-    const newMsg = {
+    const tempMsg = {
       id: Date.now(),
       sender: user,
       text,
       created_at: new Date().toISOString(),
     };
 
-    // instant UI
-    setMessages((prev) => [...prev, newMsg]);
+    // ⚡ INSTANT UI (WhatsApp style)
+    setMessages((prev) => [...prev, tempMsg]);
     setText("");
 
+    // 💾 save to database
     await supabase.from("messages").insert([
-      { sender: user, text },
+      {
+        sender: user,
+        text,
+      },
     ]);
+
+    // 📲 trigger push notification
+    await fetch(
+      "https://ihqpdlkwipxnnzpkjmlb.supabase.co/functions/v1/send-push",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: user,
+          message: text,
+        }),
+      }
+    );
   }
 
   // =========================
@@ -135,13 +153,7 @@ export default function Chat({ user }) {
 
     setMessages((prev) => [...prev, newMsg]);
 
-    await supabase.from("messages").insert([
-      {
-        sender: user,
-        media_url: url,
-        media_type: type,
-      },
-    ]);
+    await supabase.from("messages").insert([newMsg]);
   }
 
   return (
@@ -174,52 +186,54 @@ export default function Chat({ user }) {
           flex: 1,
           overflowY: "auto",
           background: "rgba(0,0,0,0.25)",
+          padding: 10,
         }}
       >
-        {messages.map((msg, i) => (
-          <Message key={msg.id || i} msg={msg} currentUser={user} />
+        {messages.map((msg) => (
+          <Message key={msg.id} msg={msg} currentUser={user} />
         ))}
 
         <div ref={bottomRef} />
       </div>
 
-      {/* INSTALL BUTTON (BOTTOM FIXED FEEL) */}
+      {/* INSTALL BUTTON */}
       {installPrompt && (
-        <div style={{ padding: "10px" }}>
-          <button
-            onClick={installApp}
-            style={{
-              width: "100%",
-              border: "none",
-              borderRadius: "12px",
-              padding: "14px",
-              background: "#7b2cbf",
-              color: "white",
-              fontWeight: "bold",
-            }}
-          >
-            📱 Install Loved App
-          </button>
-        </div>
+        <button
+          onClick={installApp}
+          style={{
+            margin: 10,
+            padding: 12,
+            borderRadius: 12,
+            background: "#7b2cbf",
+            color: "white",
+            border: "none",
+          }}
+        >
+          📱 Install App
+        </button>
       )}
 
       {/* COMPOSER */}
       <div
         className="composer"
         style={{
-          padding:
-            "10px 10px calc(10px + env(safe-area-inset-bottom)) 10px",
+          display: "flex",
+          padding: "10px 10px calc(10px + env(safe-area-inset-bottom)) 10px",
           background: "rgba(0,0,0,0.75)",
           backdropFilter: "blur(12px)",
-          display: "flex",
-          gap: "8px",
         }}
       >
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type message..."
-          style={{ flex: 1 }}
+          style={{
+            flex: 1,
+            padding: 12,
+            borderRadius: 10,
+            border: "none",
+            outline: "none",
+          }}
         />
 
         <button onClick={sendText}>➤</button>
@@ -231,9 +245,7 @@ export default function Chat({ user }) {
           style={{ display: "none" }}
         />
 
-        <button onClick={() => fileRef.current.click()}>
-          📎
-        </button>
+        <button onClick={() => fileRef.current.click()}>📎</button>
       </div>
     </div>
   );
