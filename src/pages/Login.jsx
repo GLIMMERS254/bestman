@@ -1,44 +1,68 @@
 import { useState } from "react";
 
 export default function Login({ onLogin }) {
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleLogin = (e) => {
-    if (e) e.preventDefault(); // allows Enter key
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
 
-    if (password === "15.01.2026") {
-      localStorage.setItem("user", "cherry-user"); // simple session
-      onLogin("cherry-user");
-    } else {
-      setError("Wrong password ❌");
+    // 🧠 VALIDATION
+    if (!name.trim()) {
+      setError("Please enter your name");
+      return;
     }
+
+    if (password !== "15.01.2026") {
+      setError("Wrong password ❌");
+      return;
+    }
+
+    // 💾 SAVE USER FOR AUTO LOGIN
+    localStorage.setItem("user", name);
+
+    // 🚀 GO TO CHAT
+    onLogin(name);
   };
 
   return (
     <div className="login-screen">
 
-      <form className="login-card" onSubmit={handleLogin}>
+      <form className="login-card" onSubmit={handleSubmit}>
 
         <div className="logo">🍒</div>
 
         <h1>Cherry</h1>
-        <p>Welcome back</p>
+        <p>Enter to continue</p>
+
+        <input
+          placeholder="Your name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setError("");
+          }}
+        />
 
         <input
           type="password"
+          placeholder="Password"
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
             setError("");
           }}
-          placeholder="Enter password"
         />
 
-        {error && <p style={{ color: "red", fontSize: "12px" }}>{error}</p>}
+        {error && (
+          <p style={{ color: "red", fontSize: "12px" }}>
+            {error}
+          </p>
+        )}
 
         <button type="submit">
-          Login
+          Enter Chat
         </button>
 
       </form>

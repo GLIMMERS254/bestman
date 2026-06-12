@@ -1,96 +1,144 @@
 import { useEffect, useState } from "react";
-import { supabase } from "./services/supabase";
-
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
-import ChatList from "./pages/ChatList";
-
-import OneSignal from "react-onesignal";
+import { socket } from "./services/socket";
 
 export default function App() {
-  const [session, setSession] = useState(null);
-  const [entered, setEntered] = useState(false);
-  const [selectedChat, setSelectedChat] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState([]);
 
-  // AUTH
+  // =========================
+  // 🔐 AUTO LOGIN SYSTEM
+  // =========================
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-    });
+    const savedUser = localStorage.getItem("user");
 
-    supabase.auth.onAuthStateChange((_e, session) => {
-      setSession(session);
-    });
-  }, []);
+    if (savedUser) {
+      setUser(savedUser);
 
-  // FIRST TIME
-  useEffect(() => {
-    if (localStorage.getItem("entered")) {
-      setEntered(true);
+      // join chat room immediately
+      socket.emit("join", savedUser);
     }
+
+    setLoading(false);
   }, []);
 
-  // ONLINE STATUS (STEP 7)
+  // =========================
+  // 🔌 SOCKET CONNECTION EVENTS
+  // =========================
   useEffect(() => {
-    if (!session) return;
+    socket.on("connect", () => {
+      console.log("Connected to server:", socket.id);
+    });
 
-    supabase
-      .from("profiles")
-      .update({ online: true })
-      .eq("email", session.user.email);
-  }, [session]);
+    socket.on("online-users", (users) => {
+      setOnlineUsers(users);
+    });
 
-  // OFFLINE
-  useEffect(() => {
-    const offline = () => {
-      supabase
-        .from("profiles")
-        .update({
-          online: false,
-          last_seen: new Date().toISOString(),
-        })
-        .eq("email", session?.user?.email);
+    socket.on("disconnect", () => {
+      console.log("Disconnected from server");
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.off("online-users");
+      socket.off("disconnect");
     };
+  }, []);
 
-    window.addEventListener("beforeunload", offline);
-    return () => window.removeEventListener("beforeunload", offline);
-  }, [session]);
+  // =========================
+  // 🔐 LOGIN FUNCTION
+  // =========================
+  const handleLogin = (username) => {
+    setUser(username);
+    localStorage.setItem("user", username);
 
-  // PUSH LOGIN
+    socket.emit("join", username);
+  };
+
+  // =========================
+  // 🚪 LOGOUT FUNCTION
+  // =========================
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+
+    socket.emit("leave", user);
+  };
+
+  // =========================
+  // 🎥 VIDEO CALL SYSTEM (HOOK PLACEHOLDER)
+  // =========================
+  const startVideoCall = (targetUser) => {
+    socket.emit("video-call-request", {
+      from: user,
+      to: targetUser
+    });
+  };
+
+  const acceptVideoCall = (data) => {
+    socket.emit("video-call-accept", data);
+  };
+
+  const endVideoCall = () => {
+    socket.emit("video-call-end", {
+      from: user
+    });
+  };
+
+  // =========================
+  // 📞 LISTEN FOR CALL EVENTS
+  // =========================
   useEffect(() => {
-    if (session) {
-      OneSignal.Notifications.requestPermission();
-      OneSignal.login(session.user.email);
-    }
-  }, [session]);
+    socket.on("video-call-request", (data) => {
+      console.log("Incoming call from:", data.from);
+    });
 
-  if (!session) return <Login />;
+    socket.on("video-call-accepted", (data) => {
+      console.log("Call accepted:", data);
+    });
 
-  if (!entered) {
+    socket.on("video-call-ended", () => {
+      console.log("Call ended");
+    });
+
+    return () => {
+      socket.off("video-call-request");
+      socket.off("video-call-accepted");
+      socket.off("video-call-ended");
+    };
+  }, []);
+
+  // =========================
+  // ⏳ LOADING SCREEN
+  // =========================
+  if (loading) {
     return (
-      <Dashboard
-        onContinue={() => {
-          localStorage.setItem("entered", "true");
-          setEntered(true);
-        }}
-      />
+      <div style={{ color: "white", textAlign: "center", marginTop: 50 }}>
+        Loading Cherry...
+      </div>
     );
   }
 
-  if (!selectedChat) {
-    return (
-      <ChatList
-        user={session.user.email}
-        openChat={(chat) => setSelectedChat(chat)}
-      />
-    );
+  // =========================
+  // 🔐 NOT LOGGED IN → LOGIN
+  // =========================
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
   }
 
+  // =========================
+  // 💬 MAIN CHAT APP
+  // =========================
   return (
     <Chat
-      user={session.user.email}
-      chatId={selectedChat.id}
+      user={user}
+      onLogout={handleLogout}
+      onlineUsers={onlineUsers}
+      startVideoCall={startVideoCall}
+      acceptVideoCall={acceptVideoCall}
+      endVideoCall={endVideoCall}
     />
   );
 }
