@@ -1,81 +1,259 @@
-body {
+/* =========================
+GLOBAL RESET
+========================= */
+* {
   margin: 0;
-  font-family: Arial;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
   background: #0b141a;
+  color: white;
+  overflow: hidden;
+}
+
+/* =========================
+LOGIN SCREEN (GREEN THEME)
+========================= */
+.login-screen {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: linear-gradient(
+    135deg,
+    #0f3d2e,
+    #128c7e,
+    #25d366
+  );
+}
+
+.login-card {
+  width: 360px;
+  padding: 30px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.login-card .logo {
+  font-size: 50px;
+  margin-bottom: 10px;
+}
+
+.login-card h1 {
+  font-size: 22px;
+  margin-bottom: 5px;
+}
+
+.login-card p {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 15px;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  background: rgba(255,255,255,0.1);
   color: white;
 }
 
-.chat-page {
+.login-card button {
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #25d366;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* =========================
+ONLINE BAR
+========================= */
+.online-bar {
+  background: #128c7e;
+  padding: 8px;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* =========================
+MAIN LAYOUT
+========================= */
+.chat-layout {
   display: flex;
   height: 100vh;
+
+  /* WALLPAPER FIX (app.jpg) */
+  background-image: url("/app.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
-/* CHAT LIST */
-.chat-list {
-  width: 25%;
-  background: #111b21;
-  padding: 10px;
+/* dark overlay for readability */
+.chat-layout::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
 }
 
-/* CHAT MAIN */
-.chat-main {
-  width: 75%;
+/* =========================
+SIDEBAR (CHAT LIST)
+========================= */
+.sidebar {
+  width: 28%;
+  background: rgba(11,20,26,0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+.user-header {
+  padding: 12px;
+  background: #128c7e;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-item {
+  padding: 14px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: 0.2s;
+}
+
+.chat-item:hover {
+  background: rgba(37,211,102,0.15);
+}
+
+.chat-item.active {
+  background: #25d366;
+  color: black;
+  font-weight: bold;
+}
+
+/* =========================
+CHAT CONTAINER
+========================= */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+/* HEADER */
+.chat-header {
+  background: rgba(18,140,126,0.9);
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+}
+
+/* =========================
+MESSAGES AREA
+========================= */
+.chat-body {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
-/* TOPBAR */
-.topbar {
-  background: #202c33;
+/* MESSAGE BUBBLES */
+.msg {
   padding: 10px;
-  display: flex;
-  justify-content: space-between;
+  margin: 6px 0;
+  border-radius: 12px;
+  max-width: 60%;
+  position: relative;
+  word-break: break-word;
 }
 
-/* MESSAGES */
-.messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
-}
-
-.my {
-  background: #005c4b;
-  margin: 5px;
-  padding: 8px;
-  border-radius: 8px;
+.msg.me {
+  background: #25d366;
+  color: black;
   align-self: flex-end;
-  max-width: 60%;
+  border-bottom-right-radius: 2px;
 }
 
-.their {
+.msg.them {
   background: #202c33;
-  margin: 5px;
-  padding: 8px;
-  border-radius: 8px;
-  max-width: 60%;
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
 }
 
-/* COMPOSER */
-.composer {
+/* =========================
+INPUT AREA
+========================= */
+.chat-input {
   display: flex;
   padding: 10px;
-  background: #202c33;
+  background: rgba(11,20,26,0.95);
+  gap: 8px;
 }
 
-.composer input {
+.chat-input input {
   flex: 1;
   padding: 10px;
+  border-radius: 20px;
+  border: none;
+  outline: none;
+  background: #1f2c33;
+  color: white;
 }
 
-/* CALL UI */
+.chat-input button {
+  background: #25d366;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 50px;
+  cursor: pointer;
+  color: black;
+  font-weight: bold;
+}
+
+/* =========================
+TYPING
+========================= */
+.typing {
+  font-size: 12px;
+  padding: 5px 12px;
+  opacity: 0.7;
+}
+
+/* =========================
+CALL UI
+========================= */
 .call-ui {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: black;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
 }
 
 .call-ui video {
@@ -84,8 +262,17 @@ body {
   object-fit: cover;
 }
 
-/* TYPOING */
-.typing {
-  font-size: 12px;
-  opacity: 0.7;
+/* =========================
+INSTALL BAR
+========================= */
+.install-bar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: #25d366;
+  color: black;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  z-index: 999;
 }

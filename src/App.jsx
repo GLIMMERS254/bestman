@@ -3,26 +3,17 @@ import Login from "./pages/Login";
 import Chat from "./pages/Chat";
 import { socket } from "./services/socket";
 
-/**
- * MAIN APP CONTROLLER
- * - handles login
- * - auto login
- * - install banner
- * - socket join
- * - routing between login/chat
- */
-
 export default function App() {
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [installPrompt, setInstallPrompt] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   // =========================
-  // AUTO LOGIN
+  // AUTO LOGIN FIX
   // =========================
   useEffect(() => {
+
     const saved = localStorage.getItem("user");
 
     if (saved) {
@@ -31,10 +22,11 @@ export default function App() {
     }
 
     setLoading(false);
+
   }, []);
 
   // =========================
-  // SOCKET CONNECTION
+  // SOCKET INIT
   // =========================
   useEffect(() => {
 
@@ -54,33 +46,13 @@ export default function App() {
   }, []);
 
   // =========================
-  // PWA INSTALL HANDLER
-  // =========================
-  useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-    };
-
-    window.addEventListener("beforeinstallprompt", handler);
-
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
-  const installApp = async () => {
-    if (!installPrompt) return;
-
-    installPrompt.prompt();
-    await installPrompt.userChoice;
-    setInstallPrompt(null);
-  };
-
-  // =========================
   // LOGIN HANDLER
   // =========================
   const handleLogin = (username) => {
+
     setUser(username);
     localStorage.setItem("user", username);
+
     socket.emit("join", username);
   };
 
@@ -88,8 +60,10 @@ export default function App() {
   // LOGOUT
   // =========================
   const logout = () => {
+
     localStorage.removeItem("user");
     setUser(null);
+
   };
 
   // =========================
@@ -97,8 +71,8 @@ export default function App() {
   // =========================
   if (loading) {
     return (
-      <div className="loading">
-        Loading Chat System...
+      <div style={{ color: "white", padding: 20 }}>
+        Loading...
       </div>
     );
   }
@@ -114,22 +88,14 @@ export default function App() {
   // MAIN APP
   // =========================
   return (
-    <>
-      {/* INSTALL BANNER */}
-      {installPrompt && (
-        <div className="install-bar">
-          <span>Install Cherry Chat App</span>
-          <button onClick={installApp}>Install</button>
-        </div>
-      )}
+    <div>
 
-      {/* ONLINE STATUS DEBUG */}
       <div className="online-bar">
-        Online: {onlineUsers.length}
+        Online users: {onlineUsers.length}
       </div>
 
-      {/* CHAT APP */}
       <Chat user={user} onLogout={logout} />
-    </>
+
+    </div>
   );
 }

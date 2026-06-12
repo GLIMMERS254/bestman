@@ -1,46 +1,76 @@
 import { useState } from "react";
 
 export default function Login({ onLogin }) {
+
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleLogin = () => {
-    if (!name) return alert("Enter name");
+  const correctPassword = "15.01.2026";
 
-    if (password !== "15.01.2026") {
-      alert("Wrong password");
+  const handleSubmit = () => {
+
+    if (!name.trim()) {
+      setError("Enter your name");
       return;
     }
 
+    if (password !== correctPassword) {
+      setError("Wrong password");
+      return;
+    }
+
+    setError("");
+
+    // AUTO LOGIN SAVE
     localStorage.setItem("user", name);
+
     onLogin(name);
   };
 
   return (
     <div className="login-screen">
+
       <div className="login-card">
 
+        {/* LOGO */}
         <div className="logo">💚</div>
 
-        <h1>Cherry & Raymond</h1>
-        <p>Secure Private Chat</p>
+        {/* TITLE */}
+        <h1>Secure Chat Login</h1>
 
+        <p>Cherry & Raymond Private Chat</p>
+
+        {/* ERROR */}
+        {error && (
+          <div className="error-box">
+            {error}
+          </div>
+        )}
+
+        {/* NAME INPUT */}
         <input
-          placeholder="Enter name (Cherry / Raymond)"
+          type="text"
+          placeholder="Enter your name (Cherry / Raymond)"
+          value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
+        {/* PASSWORD INPUT */}
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Enter password"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button onClick={handleLogin}>
+        {/* LOGIN BUTTON */}
+        <button onClick={handleSubmit}>
           Enter Chat
         </button>
 
       </div>
+
     </div>
   );
 }
