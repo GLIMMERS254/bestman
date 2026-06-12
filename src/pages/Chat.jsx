@@ -1,16 +1,23 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../services/supabase";
+import { socket } from "../services/socket";
 import Message from "../components/Message";
 
 export default function Chat({ user }) {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
-  const [typing, setTyping] = useState(false);
+  const [unread, setUnread] = useState(0);
   const fileRef = useRef();
 
-  // =========================
-  // LOAD MESSAGES
-  // =========================
+  // 🔊 sound
+  const playSound = () => {
+    const audio = new Audio(
+      "https://actions.google.com/sounds/v1/notifications/notification_2.ogg"
+    );
+    audio.play();
+  };
+
+  // 📥 load messages
   async function loadMessages() {
     const { data } = await supabase
       .from("messages")
@@ -20,134 +27,69 @@ export default function Chat({ user }) {
     setMessages(data || []);
   }
 
-  // =========================
-  // REALTIME
-  // =========================
+  // 🚀 INIT
   useEffect(() => {
     loadMessages();
 
-    const channel = supabase
-      .channel("messages")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
-        }
-      )
-      .subscribe();
+    socket.emit("join", user);
 
-    return () => supabase.removeChannel(channel);
+    // realtime socket messages
+    socket.on("message", (msg) => {
+      setMessages((prev) => [...prev, msg]);
+
+      if (msg.sender !== user) {
+        setUnread((prev) => prev + 1);
+        playSound();
+      }
+    });
+
+    return () => socket.off("message");
   }, []);
 
-  // =========================
-  // TYPING INDICATOR (LOCAL)
-  // =========================
-  useEffect(() => {
-    if (text.length > 0) {
-      setTyping(true);
-      const t = setTimeout(() => setTyping(false), 1000);
-      return () => clearTimeout(t);
-    }
-  }, [text]);
-
-  // =========================
-  // SEND TEXT
-  // =========================
-  async function sendText() {
+  // 💬 send text
+  function sendText() {
     if (!text.trim()) return;
 
-    await supabase.from("messages").insert([
-      {
-        sender: user,
-        text,
-        delivered: true,
-        seen: false,
-      },
-    ]);
+    const msg = {
+      sender: user,
+      text,
+      createdAt: Date.now()
+    };
 
+    socket.emit("message", msg);
+    setMessages((prev) => [...prev, msg]);
     setText("");
   }
 
-  // =========================
-  // SEND FILE
-  // =========================
+  // 📎 send file (simple placeholder - cloudinary still needed)
   async function sendFile(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    let type = "image";
-    if (file.type.startsWith("video")) type = "video";
-    if (file.type.startsWith("audio")) type = "audio";
+    const msg = {
+      sender: user,
+      media: URL.createObjectURL(file),
+      type: file.type
+    };
 
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const res = await fetch("YOUR_CLOUDINARY_URL", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-
-    await supabase.from("messages").insert([
-      {
-        sender: user,
-        media_url: data.secure_url,
-        media_type: type,
-        delivered: true,
-        seen: false,
-      },
-    ]);
+    socket.emit("message", msg);
   }
-
-  // =========================
-  // MARK AS SEEN (REALISTIC SIMPLE VERSION)
-  // =========================
-  async function markSeen() {
-    await supabase
-      .from("messages")
-      .update({ seen: true })
-      .neq("sender", user);
-  }
-
-  useEffect(() => {
-    markSeen();
-  }, [messages]);
 
   return (
     <div className="chat-page">
 
-      {/* WALLPAPER */}
-      <div className="chat-wallpaper"></div>
-
       {/* TOP BAR */}
       <div className="topbar">
-        💜 Cherry Chat
+        <h2>
+          Cherry 🍒 {unread > 0 && <span>({unread})</span>}
+        </h2>
       </div>
 
       {/* MESSAGES */}
       <div className="messages">
-
-        {messages.map((msg) => (
-          <Message
-            key={msg.id}
-            msg={msg}
-            currentUser={user}
-          />
+        {messages.map((msg, i) => (
+          <Message key={i} msg={msg} currentUser={user} />
         ))}
-
-        {/* TYPING */}
-        {typing && (
-          <div style={{ fontSize: 12, opacity: 0.6 }}>
-            typing...
-          </div>
-        )}
-
       </div>
 
       {/* INPUT */}
@@ -155,7 +97,10 @@ export default function Chat({ user }) {
 
         <input
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            setUnread(0);
+          }}
           placeholder="Type message..."
         />
 
@@ -165,7 +110,7 @@ export default function Chat({ user }) {
           type="file"
           ref={fileRef}
           onChange={sendFile}
-          hidden
+          style={{ display: "none" }}
         />
 
         <button onClick={() => fileRef.current.click()}>
