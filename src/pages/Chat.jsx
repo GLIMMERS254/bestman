@@ -1,121 +1,101 @@
-import { useEffect, useState, useRef } from "react";
-import { supabase } from "../services/supabase";
-import { socket } from "../services/socket";
-import Message from "../components/Message";
+import { useState } from "react";
+import ChatList from "./ChatList";
 
-export default function Chat({ user }) {
+export default function Chat({ user, onLogout }) {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
-  const [unread, setUnread] = useState(0);
-  const fileRef = useRef();
+  const [activeUser, setActiveUser] = useState("Cherry");
 
-  // 🔊 sound
-  const playSound = () => {
-    const audio = new Audio(
-      "https://actions.google.com/sounds/v1/notifications/notification_2.ogg"
-    );
-    audio.play();
-  };
+  const users = ["Cherry", "Raymond"];
 
-  // 📥 load messages
-  async function loadMessages() {
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .order("id", { ascending: true });
-
-    setMessages(data || []);
-  }
-
-  // 🚀 INIT
-  useEffect(() => {
-    loadMessages();
-
-    socket.emit("join", user);
-
-    // realtime socket messages
-    socket.on("message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-
-      if (msg.sender !== user) {
-        setUnread((prev) => prev + 1);
-        playSound();
-      }
-    });
-
-    return () => socket.off("message");
-  }, []);
-
-  // 💬 send text
-  function sendText() {
+  // =========================
+  // SEND MESSAGE
+  // =========================
+  const send = () => {
     if (!text.trim()) return;
 
-    const msg = {
-      sender: user,
-      text,
-      createdAt: Date.now()
-    };
+    setMessages([
+      ...messages,
+      {
+        sender: user,
+        text,
+        time: new Date().toLocaleTimeString()
+      }
+    ]);
 
-    socket.emit("message", msg);
-    setMessages((prev) => [...prev, msg]);
     setText("");
-  }
+  };
 
-  // 📎 send file (simple placeholder - cloudinary still needed)
-  async function sendFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const msg = {
-      sender: user,
-      media: URL.createObjectURL(file),
-      type: file.type
-    };
-
-    socket.emit("message", msg);
-  }
+  // =========================
+  // VIDEO CALL (PLACEHOLDER READY)
+  // =========================
+  const startCall = () => {
+    alert("📞 Video call feature coming next step");
+  };
 
   return (
     <div className="chat-page">
 
-      {/* TOP BAR */}
-      <div className="topbar">
-        <h2>
-          Cherry 🍒 {unread > 0 && <span>({unread})</span>}
-        </h2>
-      </div>
+      {/* LEFT CHAT LIST */}
+      <ChatList
+        users={users}
+        active={activeUser}
+        setActive={setActiveUser}
+      />
 
-      {/* MESSAGES */}
-      <div className="messages">
-        {messages.map((msg, i) => (
-          <Message key={i} msg={msg} currentUser={user} />
-        ))}
-      </div>
+      {/* RIGHT CHAT AREA */}
+      <div className="chat-main">
 
-      {/* INPUT */}
-      <div className="composer">
+        {/* TOP BAR */}
+        <div className="topbar">
+          <div>
+            👤 {user} chatting with {activeUser}
+          </div>
 
-        <input
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            setUnread(0);
-          }}
-          placeholder="Type message..."
-        />
+          <div>
+            <button onClick={startCall}>📹 Call</button>
+            <button onClick={onLogout}>Logout</button>
+          </div>
+        </div>
 
-        <button onClick={sendText}>➤</button>
+        {/* MESSAGES */}
+        <div className="messages">
 
-        <input
-          type="file"
-          ref={fileRef}
-          onChange={sendFile}
-          style={{ display: "none" }}
-        />
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              style={{
+                textAlign: m.sender === user ? "right" : "left"
+              }}
+            >
+              <div
+                style={{
+                  display: "inline-block",
+                  padding: 10,
+                  margin: 5,
+                  borderRadius: 10,
+                  background: m.sender === user ? "#dcf8c6" : "#fff",
+                  maxWidth: "70%"
+                }}
+              >
+                {m.text}
+                <div style={{ fontSize: 10 }}>{m.time}</div>
+              </div>
+            </div>
+          ))}
 
-        <button onClick={() => fileRef.current.click()}>
-          📎
-        </button>
+        </div>
+
+        {/* INPUT */}
+        <div className="composer">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type message..."
+          />
+
+          <button onClick={send}>➤</button>
+        </div>
 
       </div>
     </div>
