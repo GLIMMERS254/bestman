@@ -1,125 +1,55 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: sans-serif;
-}
-
-html, body, #root {
-  height: 100%;
-  width: 100%;
-}
-
-/* =========================
-LOGIN
-========================= */
-.login-screen {
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: white;
-}
-
-.login-card {
-  width: 320px;
-  padding: 25px;
-  border-radius: 15px;
-  background: #f5f5f5;
-  text-align: center;
-}
-
-.login-card input {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-
-.login-card button {
-  margin-top: 15px;
-  width: 100%;
-  padding: 12px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 10px;
-}
-
-/* =========================
-CHAT LAYOUT
-========================= */
-.chat-page {
-  display: flex;
-  height: 100vh;
-  background: white;
-}
-
-/* LEFT CHAT LIST */
-.chat-list {
-  width: 25%;
-  border-right: 1px solid #ddd;
-  background: #f7f7f7;
-  padding: 10px;
-}
-
-/* RIGHT CHAT */
-.chat-main {
+.chat-main-green {
   flex: 1;
   display: flex;
   flex-direction: column;
-
-  /* WALLPAPER FROM PUBLIC */
   background-image: url("/app.jpg");
   background-size: cover;
   background-position: center;
 }
 
 /* TOP BAR */
-.topbar {
-  padding: 10px;
-  background: rgba(255,255,255,0.8);
-  font-weight: bold;
+.topbar-green {
+  background: #075e54;
+  color: white;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
 }
 
 /* MESSAGES */
-.messages {
+.messages-green {
   flex: 1;
-  overflow-y: auto;
   padding: 10px;
+  overflow-y: auto;
 }
 
-.my-msg {
-  text-align: right;
-  margin: 5px;
+/* MY MESSAGE */
+.my-bubble-green {
+  display: inline-block;
   background: #dcf8c6;
-  display: inline-block;
-  padding: 8px;
+  padding: 10px;
   border-radius: 10px;
+  margin: 5px;
+  max-width: 70%;
 }
 
-.their-msg {
-  text-align: left;
-  margin: 5px;
-  background: white;
-  display: inline-block;
-  padding: 8px;
+/* IMAGE */
+.chat-img {
+  width: 200px;
   border-radius: 10px;
+  margin-top: 5px;
 }
 
 /* INPUT */
-.composer {
+.composer-green {
   display: flex;
   padding: 10px;
-  background: rgba(255,255,255,0.9);
+  background: #ededed;
 }
 
-.composer input {
+.composer-green input {
   flex: 1;
   padding: 10px;
-}
-
-.composer button {
-  margin-left: 5px;
+  border-radius: 20px;
+  border: none;
 }
