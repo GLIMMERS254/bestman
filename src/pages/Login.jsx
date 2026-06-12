@@ -1,46 +1,48 @@
 import { useState } from "react";
 
 export default function Login({ onLogin }) {
-  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const SECRET = "15.01.2026";
+  const handleLogin = (e) => {
+    if (e) e.preventDefault(); // allows Enter key
 
-  function handleLogin() {
-    if (!name || !password) return;
-
-    if (password === SECRET) {
-      localStorage.setItem("user", name);
-      onLogin(name);
+    if (password === "15.01.2026") {
+      localStorage.setItem("user", "cherry-user"); // simple session
+      onLogin("cherry-user");
     } else {
-      alert("Wrong password");
+      setError("Wrong password ❌");
     }
-  }
+  };
 
   return (
     <div className="login-screen">
-      <div className="login-card">
-        <div className="logo">💜</div>
-        <h1>Cherry & Raymond</h1>
-        <p>Private Chat App</p>
 
-        <input
-          placeholder="Enter name (Cherry / Raymond)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+      <form className="login-card" onSubmit={handleLogin}>
+
+        <div className="logo">🍒</div>
+
+        <h1>Cherry</h1>
+        <p>Welcome back</p>
 
         <input
           type="password"
-          placeholder="Enter password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setError("");
+          }}
+          placeholder="Enter password"
         />
 
-        <button onClick={handleLogin}>
-          Enter Chat
+        {error && <p style={{ color: "red", fontSize: "12px" }}>{error}</p>}
+
+        <button type="submit">
+          Login
         </button>
-      </div>
+
+      </form>
+
     </div>
   );
 }
