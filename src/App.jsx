@@ -7,15 +7,18 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [incomingCall, setIncomingCall] = useState(null);
 
   // =========================
-  // 🔐 AUTO LOGIN SYSTEM
+  // 🔐 AUTO LOGIN (ON LOAD)
   // =========================
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
 
     if (savedUser) {
       setUser(savedUser);
+
+      // join socket once
       socket.emit("join", savedUser);
     }
 
@@ -23,29 +26,36 @@ export default function App() {
   }, []);
 
   // =========================
-  // 🔌 SOCKET EVENTS (SAFE SETUP)
+  // 🔌 SOCKET CONNECTION (SAFE LISTENERS)
   // =========================
   useEffect(() => {
-    const handleConnect = () => {
+    const onConnect = () => {
       console.log("Connected:", socket.id);
     };
 
-    const handleUsers = (users) => {
+    const onUsers = (users) => {
       setOnlineUsers(users);
     };
 
-    const handleDisconnect = () => {
-      console.log("Disconnected");
+    const onCall = (data) => {
+      // incoming call popup trigger
+      setIncomingCall(data);
     };
 
-    socket.on("connect", handleConnect);
-    socket.on("online-users", handleUsers);
-    socket.on("disconnect", handleDisconnect);
+    const onCallEnd = () => {
+      setIncomingCall(null);
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("online-users", onUsers);
+    socket.on("video-call-request", onCall);
+    socket.on("video-call-ended", onCallEnd);
 
     return () => {
-      socket.off("connect", handleConnect);
-      socket.off("online-users", handleUsers);
-      socket.off("disconnect", handleDisconnect);
+      socket.off("connect", onConnect);
+      socket.off("online-users", onUsers);
+      socket.off("video-call-request", onCall);
+      socket.off("video-call-ended", onCallEnd);
     };
   }, []);
 
@@ -69,7 +79,7 @@ export default function App() {
   };
 
   // =========================
-  // 🎥 VIDEO CALL SYSTEM
+  // 🎥 VIDEO CALL HANDLERS
   // =========================
   const startVideoCall = (targetUser) => {
     socket.emit("video-call-request", {
@@ -78,5 +88,49 @@ export default function App() {
     });
   };
 
-  const acceptVideoCall = (data) => {
-    socket.emit("
+  const acceptVideoCall = () => {
+    socket.emit("video-call-accept", incomingCall);
+    setIncomingCall(null);
+  };
+
+  const endVideoCall = () => {
+    socket.emit("video-call-end", {
+      from: user,
+    });
+
+    setIncomingCall(null);
+  };
+
+  // =========================
+  // ⏳ LOADING SCREEN
+  // =========================
+  if (loading) {
+    return (
+      <div style={{ padding: 20, textAlign: "center" }}>
+        Loading Cherry Chat...
+      </div>
+    );
+  }
+
+  // =========================
+  // 🔐 LOGIN SCREEN
+  // =========================
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  // =========================
+  // 💬 MAIN APP
+  // =========================
+  return (
+    <Chat
+      user={user}
+      onlineUsers={onlineUsers}
+      onLogout={handleLogout}
+      startVideoCall={startVideoCall}
+      acceptVideoCall={acceptVideoCall}
+      endVideoCall={endVideoCall}
+      incomingCall={incomingCall}
+    />
+  );
+}
