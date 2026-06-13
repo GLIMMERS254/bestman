@@ -10,6 +10,30 @@ body {
 }
 
 /* =========================
+   TOP BAR (INSTALL + TITLE)
+========================= */
+.online-bar {
+  background: #111b21;
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* INSTALL BUTTON */
+.install-btn {
+  background: #25d366;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: white;
+  font-weight: bold;
+}
+
+/* =========================
    APP WRAPPER
 ========================= */
 .app-container {
@@ -27,7 +51,7 @@ body {
 }
 
 /* =========================
-   SIDEBAR (DARK WHATSAPP STYLE)
+   SIDEBAR (CHATS LIST)
 ========================= */
 .sidebar {
   width: 30%;
@@ -43,9 +67,6 @@ body {
   background: #202c33;
   border-radius: 10px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .chat-item.active {
@@ -53,16 +74,8 @@ body {
   color: black;
 }
 
-/* PROFILE IMAGE */
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
 /* =========================
-   CHAT AREA (MAIN)
+   CHAT AREA (WHITE LIKE WHATSAPP)
 ========================= */
 .chat-container {
   width: 70%;
@@ -70,58 +83,53 @@ body {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: #e5ddd5; /* WhatsApp light background */
+  background: #e5ddd5;
 }
 
-/* HEADER */
+/* HEADER INSIDE CHAT */
 .chat-header {
-  background: #f0f0f0;
+  background: #075e54;
+  color: white;
   padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: black;
+  font-weight: bold;
 }
 
 /* =========================
-   MESSAGES AREA (WHITE + SCROLL)
+   MESSAGES (SCROLL ONLY HERE)
 ========================= */
 .chat-body {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
-
+  padding: 12px;
   display: flex;
   flex-direction: column;
-
   background: #e5ddd5;
 }
 
 /* MESSAGE BUBBLES */
 .msg {
   max-width: 70%;
-  padding: 8px;
-  margin: 6px 0;
+  padding: 8px 10px;
+  margin: 5px 0;
   border-radius: 10px;
   word-wrap: break-word;
+  font-size: 14px;
 }
 
 /* MY MESSAGE */
 .msg.me {
   background: #dcf8c6;
   align-self: flex-end;
-  color: black;
 }
 
-/* OTHER MESSAGE */
+/* THEIR MESSAGE */
 .msg.them {
   background: white;
   align-self: flex-start;
-  color: black;
 }
 
 /* =========================
-   INPUT (FIXED BOTTOM ALWAYS)
+   INPUT BAR (ALWAYS FIXED)
 ========================= */
 .chat-input {
   display: flex;
@@ -135,14 +143,12 @@ body {
   z-index: 100;
 }
 
-/* INPUT FIELD */
 .chat-input input {
   flex: 1;
   padding: 12px;
   border-radius: 25px;
   border: none;
   outline: none;
-  background: white;
 }
 
 /* SEND BUTTON */
@@ -157,38 +163,26 @@ body {
 }
 
 /* =========================
-   LOGIN (CENTERED FIXED)
+   LOGIN (CENTERED)
 ========================= */
 .login-screen {
   height: 100vh;
-  width: 100vw;
-
   display: flex;
   justify-content: center;
   align-items: center;
-
   background: #0b141a;
-  padding: 20px;
 }
 
-/* LOGIN CARD */
 .login-card {
   background: white;
   color: black;
-
   width: 320px;
   max-width: 90%;
-
   padding: 30px;
   border-radius: 15px;
   text-align: center;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 }
 
-/* LOGIN INPUTS */
 .login-card input {
   width: 100%;
   padding: 10px;
@@ -197,7 +191,6 @@ body {
   border: 1px solid #ccc;
 }
 
-/* LOGIN BUTTON */
 .login-card button {
   width: 100%;
   padding: 10px;
@@ -206,31 +199,4 @@ body {
   border-radius: 10px;
   color: white;
   font-weight: bold;
-  cursor: pointer;
-}
-
-/* =========================
-   MOBILE FIX
-========================= */
-@media (max-width: 768px) {
-
-  .chat-layout {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
-    display: flex;
-    overflow-x: auto;
-    height: 100px;
-  }
-
-  .chat-container {
-    width: 100%;
-    height: calc(100vh - 100px);
-  }
-
-  .msg {
-    max-width: 80%;
-  }
 }
