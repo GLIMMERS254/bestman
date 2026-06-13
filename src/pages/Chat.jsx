@@ -23,13 +23,28 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
     }
   }, [messages, typingUser]);
 
-  // =========================
-  // MESSAGE STREAM TRANSLATION
-  // =========================
+  // ==========================================
+  // REAL-TIME INBOUND STREAM & NOTIFICATIONS
+  // ==========================================
   useEffect(() => {
     socket.on("message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
+      // Avoid duplicate listing if already rendered optimistically by sender
+      setMessages((prev) => {
+        if (prev.some(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+      
       socket.emit("message-seen", { messageId: msg.id, user });
+
+      // TRIGGER SYSTEM PUSH NOTIFICATION IF USER IS OUTSIDE APP OR LOOKING AWAY
+      if (msg.sender !== user && document.visibilityState !== "visible") {
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification(`New message from ${msg.sender}`, {
+            body: msg.type === "text" ? msg.text : "🎤 Voice note",
+            icon: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80" // Replace with app icon path if desired
+          });
+        }
+      }
     });
 
     socket.on("message-updated", ({ messageId, status }) => {
@@ -62,21 +77,30 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
     return () => socket.off("typing");
   }, [user]);
 
+  // ==========================================
+  // INSTANT OPTIMISTIC SENDING METHOD
+  // ==========================================
   const sendMessage = (e) => {
     if (e) e.preventDefault();
     if (!text.trim()) return;
 
     const msg = {
-      id: Date.now(),
+      id: Date.now(), // Generate unique temp ID
       sender: user,
       receiver: activeChat,
-      text,
+      text: text,
       type: "text",
       status: "sent",
       createdAt: new Date()
     };
 
+    // 1. INSTANTLY push message right into screen state so it shows up immediately!
+    setMessages((prev) => [...prev, msg]);
+
+    // 2. Fire cleanly across the active real-time socket pipe to server
     socket.emit("message", msg);
+    
+    // Clear the message box input area immediately
     setText("");
   };
 
@@ -109,7 +133,7 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
         const data = await uploadFile(file);
 
         if (data && data.url) {
-          socket.emit("message", {
+          const voiceMsg = {
             id: Date.now(),
             sender: user,
             receiver: activeChat,
@@ -117,7 +141,11 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
             url: data.url,
             status: "sent",
             createdAt: new Date()
-          });
+          };
+          
+          // Optimistic local list state update for voice items too
+          setMessages((prev) => [...prev, voiceMsg]);
+          socket.emit("message", voiceMsg);
         }
       };
 
@@ -177,7 +205,6 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
             <div className="avatar-placeholder">{otherUser[0]}</div>
             <div className="chat-info">
               <b>{otherUser}</b>
-              {/* STRICT SOCKET-CONNECTED MONITORING ONLY */}
               <small style={{ color: onlineUsers.includes(otherUser) ? "#00a884" : "#8696a0" }}>
                 {onlineUsers.includes(otherUser) ? "online" : "offline"}
               </small>

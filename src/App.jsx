@@ -44,11 +44,15 @@ export default function App() {
   }, []);
 
   // =========================
-  // NATIVE API PERMISSIONS
+  // NOTIFICATION PERMISSION REQUEST
   // =========================
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
+    if ("Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission().then(permission => {
+          console.log("Notification permission status:", permission);
+        });
+      }
     }
   }, []);
 

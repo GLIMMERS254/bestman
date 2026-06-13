@@ -12,7 +12,7 @@ body {
   background: #0b141a;
   overflow: hidden;
   height: 100vh;
-  height: 100dvh; /* Seamless mobile address bar tracking */
+  height: 100dvh;
 }
 
 /* ===================================================
@@ -64,7 +64,6 @@ body {
   border-color: #00a884;
 }
 
-/* Hard-Themed Green Interface Action Keys */
 .login-card button,
 .login-btn-green {
   background: #00a884 !important;
@@ -197,7 +196,7 @@ body {
 }
 
 /* ===================================================
-   SCROLL TIMELINE LOG VIEWPORT Layer
+   SCROLL TIMELINE LOG VIEWPORT
 =================================================== */
 .chat-body {
   flex: 1;
@@ -206,7 +205,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* Leaves a safe padding clearing buffer layer so text lines never slip under entry dock */
   padding-bottom: 124px; 
 }
 
@@ -261,7 +259,7 @@ body {
 =================================================== */
 .input-panel-wrapper {
   position: absolute;
-  bottom: 14px; /* Suspends panel safely above phone system margins */
+  bottom: 14px; 
   left: 4%;
   width: 92%;
   background: #111b21;
@@ -321,7 +319,6 @@ body {
   cursor: pointer;
 }
 
-/* Custom Signature Core Footnote */
 .boyfriend-credit-footer {
   text-align: center;
   font-size: 11px;
@@ -333,7 +330,7 @@ body {
 }
 
 /* ===================================================
-   FLOATING ACTION ACTION PIPES (Left Center Anchor)
+   FLOATING ACTION PIPES (Left Center Anchor)
 =================================================== */
 .sidebar-install-floating-btn {
   position: absolute;
