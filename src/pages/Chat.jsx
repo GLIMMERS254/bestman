@@ -3,7 +3,6 @@ import { socket } from "../services/socket";
 import { uploadFile } from "../services/upload";
 
 export default function Chat({ user, avatar, onLogout, onlineUsers, deferredPrompt, onInstall }) {
-  // Enforces structural workspace naming constraints
   const otherUser = user === "Raymond" ? "Anne" : "Raymond";
 
   const [activeChat, setActiveChat] = useState(otherUser);
@@ -16,19 +15,15 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
   const chunksRef = useRef([]);
   const chatBodyRef = useRef(null);
 
-  // Smooth layout bottom lock scroll configuration
   useEffect(() => {
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
     }
   }, [messages, typingUser]);
 
-  // ==========================================
-  // REAL-TIME INBOUND STREAM & NOTIFICATIONS
-  // ==========================================
+  // Real-time message streaming updates
   useEffect(() => {
     socket.on("message", (msg) => {
-      // Avoid duplicate listing if already rendered optimistically by sender
       setMessages((prev) => {
         if (prev.some(m => m.id === msg.id)) return prev;
         return [...prev, msg];
@@ -36,12 +31,11 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
       
       socket.emit("message-seen", { messageId: msg.id, user });
 
-      // TRIGGER SYSTEM PUSH NOTIFICATION IF USER IS OUTSIDE APP OR LOOKING AWAY
       if (msg.sender !== user && document.visibilityState !== "visible") {
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification(`New message from ${msg.sender}`, {
             body: msg.type === "text" ? msg.text : "🎤 Voice note",
-            icon: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80" // Replace with app icon path if desired
+            icon: "/app.jpg"
           });
         }
       }
@@ -64,9 +58,7 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
     };
   }, [user]);
 
-  // =========================
-  // TYPING CHANNEL HOOKS
-  // =========================
+  // Live typing event loops
   useEffect(() => {
     socket.on("typing", ({ from, to }) => {
       if (to === user) {
@@ -77,15 +69,12 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
     return () => socket.off("typing");
   }, [user]);
 
-  // ==========================================
-  // INSTANT OPTIMISTIC SENDING METHOD
-  // ==========================================
   const sendMessage = (e) => {
     if (e) e.preventDefault();
     if (!text.trim()) return;
 
     const msg = {
-      id: Date.now(), // Generate unique temp ID
+      id: Date.now(),
       sender: user,
       receiver: activeChat,
       text: text,
@@ -94,13 +83,8 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
       createdAt: new Date()
     };
 
-    // 1. INSTANTLY push message right into screen state so it shows up immediately!
     setMessages((prev) => [...prev, msg]);
-
-    // 2. Fire cleanly across the active real-time socket pipe to server
     socket.emit("message", msg);
-    
-    // Clear the message box input area immediately
     setText("");
   };
 
@@ -113,9 +97,6 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
     socket.emit("delete-message", { messageId: id });
   };
 
-  // =========================
-  // HARDWARE RECORDING ENGINE
-  // =========================
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -143,7 +124,6 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
             createdAt: new Date()
           };
           
-          // Optimistic local list state update for voice items too
           setMessages((prev) => [...prev, voiceMsg]);
           socket.emit("message", voiceMsg);
         }
@@ -163,7 +143,6 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
   return (
     <div className="app-container">
       
-      {/* TOP COMPONENT NAVIGATION PANEL */}
       <div className="top-bar">
         <div className="left">
           <button className="menu-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
@@ -171,12 +150,13 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
           </button>
           <div className="profile">
             <img 
-              src={avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80"} 
+              src={avatar || "/app.jpg"} 
               className="user-header-avatar" 
               alt="Profile avatar" 
             />
             <div>
               <b>{user}</b>
+              {/* 🟢 DYNAMIC LIVE STATUS INDICATOR */}
               <span className="status-indicator">
                 {onlineUsers.includes(user) ? "🟢 online" : "⚪ offline"}
               </span>
@@ -188,7 +168,6 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
 
       <div className="chat-layout">
         
-        {/* SLIDING SIDEBAR COMPONENT BLOCK */}
         <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
           <div className="sidebar-header">
             <h3>Active Sessions</h3>
@@ -205,31 +184,32 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
             <div className="avatar-placeholder">{otherUser[0]}</div>
             <div className="chat-info">
               <b>{otherUser}</b>
-              <small style={{ color: onlineUsers.includes(otherUser) ? "#00a884" : "#8696a0" }}>
-                {onlineUsers.includes(otherUser) ? "online" : "offline"}
+              {/* 🟢 OTHER USER LIVE MONITOR STATUS */}
+              <small style={{ color: onlineUsers.includes(otherUser) ? "#00a884" : "#8696a0", fontWeight: "bold" }}>
+                {onlineUsers.includes(otherUser) ? "● online" : "○ offline"}
               </small>
             </div>
           </div>
         </div>
 
-        {/* COMPONENT OUTSIDE PANEL CLICK HOOK */}
         {isSidebarOpen && <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)}></div>}
 
-        {/* FULLSCREEN CHAT AREA CANVAS */}
         <div className="chat-container">
           
-          {/* PWA FLOATING APP ATTACHMENT ANCHOR (Left Center Location) */}
           {deferredPrompt && (
             <button className="sidebar-install-floating-btn" onClick={onInstall}>
-              📥 Install App
+              📲 Install Native App
             </button>
           )}
 
           <div className="chat-header">
-            Secure Channel: <span>{activeChat}</span>
+            Secure Channel: <span>{activeChat}</span> 
+            <span style={{ marginLeft: "8px", fontSize: "12px", color: onlineUsers.includes(activeChat) ? "#00a884" : "#8696a0" }}>
+              ({onlineUsers.includes(activeChat) ? "Online Now" : "Away"})
+            </span>
           </div>
 
-          {/* MESSAGE VIEWPORT BLOCK */}
+          {/* 🤍 CHAT MATRIX CANVAS VIEWPORT */}
           <div className="chat-body" ref={chatBodyRef}>
             {messages
               .filter(
@@ -265,7 +245,6 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
             )}
           </div>
 
-          {/* FIXED ELEVATED INPUT WRAPPER CONTROLLER */}
           <div className="input-panel-wrapper">
             <form onSubmit={sendMessage} className="chat-input-bar">
               <input
@@ -290,7 +269,6 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
               </button>
             </form>
             
-            {/* Custom Footer Credit Container */}
             <div className="boyfriend-credit-footer">
               Designed with ❤️ by your boyfriend Ray
             </div>

@@ -33,6 +33,7 @@ export default function App() {
       console.log("Secure Connection Established:", socket.id);
     });
 
+    // INSTANT LIVE DETECTOR: Instantly catches when anyone logs in or drops out
     socket.on("online-users", (users) => {
       setOnlineUsers(users);
     });
@@ -47,12 +48,8 @@ export default function App() {
   // NOTIFICATION PERMISSION REQUEST
   // =========================
   useEffect(() => {
-    if ("Notification" in window) {
-      if (Notification.permission === "default") {
-        Notification.requestPermission().then(permission => {
-          console.log("Notification permission status:", permission);
-        });
-      }
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
     }
   }, []);
 
@@ -68,7 +65,7 @@ export default function App() {
   }, []);
 
   // =========================
-  // PWA INSTALL DEFERMENT ENGINE
+  // PWA INSTALL ENGINE
   // =========================
   useEffect(() => {
     const handler = (e) => {
