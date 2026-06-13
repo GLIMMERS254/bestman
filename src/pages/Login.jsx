@@ -10,7 +10,7 @@ export default function Login({ onLogin }) {
 
   const handleSubmit = () => {
 
-    if (!name.trim()) {
+    if (name.trim() === "") {
       setError("Enter your name");
       return;
     }
@@ -21,10 +21,7 @@ export default function Login({ onLogin }) {
     }
 
     setError("");
-
-    // AUTO LOGIN SAVE
     localStorage.setItem("user", name);
-
     onLogin(name);
   };
 
@@ -33,30 +30,20 @@ export default function Login({ onLogin }) {
 
       <div className="login-card">
 
-        {/* LOGO */}
         <div className="logo">💚</div>
 
-        {/* TITLE */}
-        <h1>Secure Chat Login</h1>
+        <h2>Secure Chat Login</h2>
+        <p>Cherry & Raymond Chat</p>
 
-        <p>Cherry & Raymond Private Chat</p>
+        {error && <div className="error-box">{error}</div>}
 
-        {/* ERROR */}
-        {error && (
-          <div className="error-box">
-            {error}
-          </div>
-        )}
-
-        {/* NAME INPUT */}
         <input
           type="text"
-          placeholder="Enter your name (Cherry / Raymond)"
+          placeholder="Enter name (Cherry / Raymond)"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
-        {/* PASSWORD INPUT */}
         <input
           type="password"
           placeholder="Enter password"
@@ -64,7 +51,6 @@ export default function Login({ onLogin }) {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {/* LOGIN BUTTON */}
         <button onClick={handleSubmit}>
           Enter Chat
         </button>

@@ -4,23 +4,39 @@ import { socket } from "../services/socket";
 export default function Chat({ user, onLogout }) {
 
   // =========================
-  // CORE STATE
+  // USERS
   // =========================
-  const [activeChat, setActiveChat] = useState(
-    user === "Cherry" ? "Raymond" : "Cherry"
-  );
+  const users = ["Cherry", "Raymond", "Anne"];
+  const [activeChat, setActiveChat] = useState("Cherry");
 
+  // =========================
+  // CHAT STATE
+  // =========================
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   // =========================
+  // PROFILE PICS
+  // =========================
+  const profilePics = {
+    Cherry: "https://i.pravatar.cc/150?img=5",
+    Raymond: "https://i.pravatar.cc/150?img=12",
+    Anne: "https://i.pravatar.cc/150?img=20"
+  };
+
+  // =========================
+  // VOICE RECORDING
+  // =========================
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+
+  // =========================
   // VIDEO CALL STATE
   // =========================
   const [calling, setCalling] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
-  const [callAccepted, setCallAccepted] = useState(false);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -28,40 +44,27 @@ export default function Chat({ user, onLogout }) {
   const streamRef = useRef(null);
 
   // =========================
-  // LOAD CHAT HISTORY
+  // JOIN
   // =========================
   useEffect(() => {
+    socket.emit("join", user);
+  }, [user]);
 
-    socket.emit("load-chat", {
-      user,
-      target: activeChat
-    });
-
-  }, [activeChat, user]);
-
+  // =========================
+  // LOAD CHAT
+  // =========================
   useEffect(() => {
+    socket.emit("load-chat", { user, target: activeChat });
 
     socket.on("chat-history", (data) => {
       setMessages(data);
     });
 
     return () => socket.off("chat-history");
-
-  }, []);
-
-  // =========================
-  // ONLINE USERS
-  // =========================
-  useEffect(() => {
-
-    socket.on("online-users", setOnlineUsers);
-
-    return () => socket.off("online-users");
-
-  }, []);
+  }, [activeChat]);
 
   // =========================
-  // RECEIVE MESSAGE
+  // SOCKET EVENTS
   // =========================
   useEffect(() => {
 
@@ -69,25 +72,49 @@ export default function Chat({ user, onLogout }) {
       setMessages((prev) => [...prev, msg]);
     });
 
-    return () => socket.off("message");
-
-  }, []);
-
-  // =========================
-  // TYPING
-  // =========================
-  useEffect(() => {
-
     socket.on("typing", ({ from }) => {
-
       if (from === activeChat) {
         setTyping(true);
         setTimeout(() => setTyping(false), 1000);
       }
-
     });
 
-    return () => socket.off("typing");
+    socket.on("online-users", setOnlineUsers);
+
+    // VIDEO CALL SIGNALING
+    socket.on("video-offer", async (data) => {
+      setIncomingCall(data);
+    });
+
+    socket.on("video-answer", async (data) => {
+      if (peerRef.current) {
+        await peerRef.current.setRemoteDescription(
+          new RTCSessionDescription(data.answer)
+        );
+      }
+    });
+
+    socket.on("ice-candidate", async (data) => {
+      if (peerRef.current && data.candidate) {
+        await peerRef.current.addIceCandidate(
+          new RTCIceCandidate(data.candidate)
+        );
+      }
+    });
+
+    socket.on("end-video", () => {
+      endCall();
+    });
+
+    return () => {
+      socket.off("message");
+      socket.off("typing");
+      socket.off("online-users");
+      socket.off("video-offer");
+      socket.off("video-answer");
+      socket.off("ice-candidate");
+      socket.off("end-video");
+    };
 
   }, [activeChat]);
 
@@ -95,7 +122,6 @@ export default function Chat({ user, onLogout }) {
   // SEND MESSAGE
   // =========================
   const sendMessage = () => {
-
     if (!text.trim()) return;
 
     const msg = {
@@ -108,78 +134,95 @@ export default function Chat({ user, onLogout }) {
     };
 
     setMessages((prev) => [...prev, msg]);
-
     socket.emit("message", msg);
-
     setText("");
   };
 
   // =========================
-  // TYPING EVENT
+  // TYPING
   // =========================
-  const handleTyping = (value) => {
-
-    setText(value);
-
-    socket.emit("typing", {
-      from: user,
-      to: activeChat
-    });
-
+  const handleTyping = (val) => {
+    setText(val);
+    socket.emit("typing", { from: user, to: activeChat });
   };
-    // =========================
-  // VIDEO SIGNALS (SOCKET LISTENERS)
+
   // =========================
-  useEffect(() => {
+  // MEDIA (IMAGE / VIDEO)
+  // =========================
+  const handleMedia = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    socket.on("video-offer", (data) => {
-      setIncomingCall(data);
-    });
+    const url = URL.createObjectURL(file);
 
-    socket.on("video-answer", async (data) => {
-
-      if (peerRef.current) {
-        await peerRef.current.setRemoteDescription(
-          new RTCSessionDescription(data.answer)
-        );
-      }
-
-    });
-
-    socket.on("ice-candidate", async (data) => {
-
-      try {
-        if (peerRef.current && data.candidate) {
-          await peerRef.current.addIceCandidate(
-            new RTCIceCandidate(data.candidate)
-          );
-        }
-      } catch (err) {
-        console.log("ICE error:", err);
-      }
-
-    });
-
-    socket.on("end-video", () => {
-      setCalling(false);
-      setIncomingCall(null);
-      setCallAccepted(false);
-    });
-
-    return () => {
-      socket.off("video-offer");
-      socket.off("video-answer");
-      socket.off("ice-candidate");
-      socket.off("end-video");
+    const msg = {
+      id: Date.now(),
+      sender: user,
+      receiver: activeChat,
+      type: file.type.startsWith("image")
+        ? "image"
+        : file.type.startsWith("video")
+        ? "video"
+        : "file",
+      url,
+      status: "sent"
     };
 
-  }, []);
+    setMessages((prev) => [...prev, msg]);
+    socket.emit("message", msg);
+  };
 
   // =========================
-  // START CALL (INITIATOR)
+  // VOICE NOTES
+  // =========================
+  const startRecording = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    const recorder = new MediaRecorder(stream);
+    mediaRecorderRef.current = recorder;
+    chunksRef.current = [];
+
+    recorder.ondataavailable = (e) => {
+      chunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const url = URL.createObjectURL(blob);
+
+      const msg = {
+        id: Date.now(),
+        sender: user,
+        receiver: activeChat,
+        type: "voice",
+        url,
+        status: "sent"
+      };
+
+      setMessages((prev) => [...prev, msg]);
+      socket.emit("message", msg);
+    };
+
+    recorder.start();
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+  };
+
+  // =========================
+  // FILTER CHAT
+  // =========================
+  const chatMessages = messages.filter(
+    (m) =>
+      (m.sender === user && m.receiver === activeChat) ||
+      (m.sender === activeChat && m.receiver === user)
+  );
+
+  // =========================
+  // VIDEO CALL START
   // =========================
   const startCall = async () => {
-
     setCalling(true);
 
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -188,27 +231,20 @@ export default function Chat({ user, onLogout }) {
     });
 
     streamRef.current = stream;
-
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
-    }
+    localVideoRef.current.srcObject = stream;
 
     const peer = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
-      ]
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
     });
 
     peerRef.current = peer;
 
-    stream.getTracks().forEach(track => {
-      peer.addTrack(track, stream);
-    });
+    stream.getTracks().forEach((track) =>
+      peer.addTrack(track, stream)
+    );
 
     peer.ontrack = (event) => {
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
+      remoteVideoRef.current.srcObject = event.streams[0];
     };
 
     peer.onicecandidate = (event) => {
@@ -231,13 +267,11 @@ export default function Chat({ user, onLogout }) {
   };
 
   // =========================
-  // ACCEPT CALL (RECEIVER)
+  // ACCEPT CALL
   // =========================
   const acceptCall = async () => {
-
     setIncomingCall(null);
     setCalling(true);
-    setCallAccepted(true);
 
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
@@ -245,27 +279,20 @@ export default function Chat({ user, onLogout }) {
     });
 
     streamRef.current = stream;
-
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
-    }
+    localVideoRef.current.srcObject = stream;
 
     const peer = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
-      ]
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
     });
 
     peerRef.current = peer;
 
-    stream.getTracks().forEach(track => {
-      peer.addTrack(track, stream);
-    });
+    stream.getTracks().forEach((track) =>
+      peer.addTrack(track, stream)
+    );
 
     peer.ontrack = (event) => {
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
+      remoteVideoRef.current.srcObject = event.streams[0];
     };
 
     await peer.setRemoteDescription(
@@ -279,34 +306,20 @@ export default function Chat({ user, onLogout }) {
       to: incomingCall.from,
       answer
     });
-
-    peer.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit("ice-candidate", {
-          to: incomingCall.from,
-          candidate: event.candidate
-        });
-      }
-    };
   };
-    // =========================
+
+  // =========================
   // END CALL
   // =========================
   const endCall = () => {
-
     setCalling(false);
     setIncomingCall(null);
-    setCallAccepted(false);
 
-    if (peerRef.current) {
-      peerRef.current.close();
-      peerRef.current = null;
-    }
+    peerRef.current?.close();
+    peerRef.current = null;
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
 
     socket.emit("end-video", {
       from: user,
@@ -315,33 +328,12 @@ export default function Chat({ user, onLogout }) {
   };
 
   // =========================
-  // FILTER CHAT MESSAGES
-  // =========================
-  const chatMessages = messages.filter(
-    (m) =>
-      (m.sender === user && m.receiver === activeChat) ||
-      (m.sender === activeChat && m.receiver === user)
-  );
-
-  // =========================
-  // MARK MESSAGE AS READ (OPTIONAL UPGRADE HOOK)
-  // =========================
-  const markAsRead = (messageId) => {
-    socket.emit("message-read", {
-      messageId,
-      from: activeChat
-    });
-  };
-
-  // =========================
-  // UI RENDER
+  // UI
   // =========================
   return (
     <div className="chat-layout">
 
-      {/* =========================
-          SIDEBAR (CHAT LIST)
-      ========================= */}
+      {/* SIDEBAR */}
       <div className="sidebar">
 
         <div className="user-header">
@@ -349,162 +341,81 @@ export default function Chat({ user, onLogout }) {
           <button onClick={onLogout}>Logout</button>
         </div>
 
-        {["Cherry", "Raymond"].map((u) => (
+        {users.map((u) => (
           <div
             key={u}
             className={`chat-item ${activeChat === u ? "active" : ""}`}
             onClick={() => setActiveChat(u)}
           >
-            💬 {u}
-
-            <span className="online-dot">
-              {onlineUsers.includes(u) ? "🟢" : "⚪"}
-            </span>
+            <img src={profilePics[u]} className="avatar" />
+            {u}
+            {onlineUsers.includes(u) ? "🟢" : "⚪"}
           </div>
         ))}
-
       </div>
 
-      {/* =========================
-          CHAT AREA
-      ========================= */}
+      {/* CHAT */}
       <div className="chat-container">
 
-        {/* TOP BAR */}
         <div className="chat-header">
-          <div>
-            <strong>{activeChat}</strong>
-            <div className="status">
-              {onlineUsers.includes(activeChat)
-                ? "online"
-                : "offline"}
-            </div>
-          </div>
-
-          <button className="call-btn" onClick={startCall}>
-            📹 Call
-          </button>
+          Chat with {activeChat}
+          <button onClick={startCall}>📹</button>
         </div>
 
-        {/* =========================
-            CALL UI
-        ========================= */}
+        {typing && <div className="typing">{activeChat} typing...</div>}
+
+        {/* CALL UI */}
         {calling && (
           <div className="call-ui">
 
-            {/* INCOMING CALL */}
-            {incomingCall && !callAccepted && (
-              <div className="incoming-call">
-                <h3>Incoming Call</h3>
-                <p>{incomingCall.from} is calling...</p>
-
-                <button onClick={acceptCall} className="accept">
-                  Accept
-                </button>
-
-                <button onClick={endCall} className="reject">
-                  Reject
-                </button>
+            {incomingCall && (
+              <div>
+                <p>{incomingCall.from} is calling</p>
+                <button onClick={acceptCall}>Accept</button>
+                <button onClick={endCall}>Reject</button>
               </div>
             )}
 
-            {/* VIDEO SCREENS */}
-            <div className="video-grid">
+            <video ref={localVideoRef} autoPlay muted />
+            <video ref={remoteVideoRef} autoPlay />
 
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                className="local-video"
-              />
-
-              <video
-                ref={remoteVideoRef}
-                autoPlay
-                className="remote-video"
-              />
-
-            </div>
-
-            {/* END CALL BUTTON */}
-            <button className="end-call-btn" onClick={endCall}>
-              End Call
-            </button>
-
+            <button onClick={endCall}>End</button>
           </div>
         )}
 
-        {/* =========================
-            TYPING INDICATOR
-        ========================= */}
-        {typing && (
-          <div className="typing">
-            {activeChat} is typing...
-          </div>
-        )}
-
-        {/* =========================
-            MESSAGES AREA
-        ========================= */}
+        {/* MESSAGES */}
         <div className="chat-body">
-
-          {chatMessages.length === 0 && (
-            <div className="empty-chat">
-              Start chatting with {activeChat} 💬
-            </div>
-          )}
 
           {chatMessages.map((m) => (
             <div
               key={m.id}
               className={`msg ${m.sender === user ? "me" : "them"}`}
-              onClick={() => markAsRead(m.id)}
             >
-
-              {/* TEXT */}
               {m.type === "text" && m.text}
-
-              {/* IMAGE */}
-              {m.type === "image" && (
-                <img src={m.url} alt="media" className="chat-img" />
-              )}
-
-              {/* VOICE NOTE */}
-              {m.type === "voice" && (
-                <audio controls src={m.url} />
-              )}
-
-              {/* TICKS */}
-              <div className="ticks">
-                {m.status === "sent" && "✓"}
-                {m.status === "delivered" && "✓✓"}
-                {m.status === "read" && "✓✓"}
-              </div>
-
+              {m.type === "image" && <img src={m.url} />}
+              {m.type === "video" && <video src={m.url} controls />}
+              {m.type === "voice" && <audio src={m.url} controls />}
             </div>
           ))}
 
         </div>
 
-        {/* =========================
-            INPUT AREA
-        ========================= */}
+        {/* INPUT */}
         <div className="chat-input">
 
-          <input
-            value={text}
-            onChange={(e) => handleTyping(e.target.value)}
-            placeholder="Type a message..."
-          />
+          <input value={text} onChange={(e) => handleTyping(e.target.value)} />
 
-          <button onClick={sendMessage}>
-            Send
+          <input type="file" onChange={handleMedia} />
+
+          <button onClick={sendMessage}>Send</button>
+
+          <button onMouseDown={startRecording} onMouseUp={stopRecording}>
+            🎤
           </button>
 
         </div>
 
       </div>
-
     </div>
   );
 }
