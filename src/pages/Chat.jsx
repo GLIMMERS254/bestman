@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { socket } from "../services/socket";
 
-export default function Chat({ user, onLogout }) {
+export default function Chat({ user, avatar, onLogout }) {
 
   const otherUser = user === "Ray" ? "Cherry" : "Ray";
 
   const [activeChat, setActiveChat] = useState(otherUser);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // LOGIN
   useEffect(() => {
     socket.emit("login", {
       user,
+      avatar,
       deviceId: navigator.userAgent
     });
   }, []);
@@ -46,36 +48,50 @@ export default function Chat({ user, onLogout }) {
     <div className="app-container">
 
       {/* TOP BAR */}
-      <div className="online-bar">
-        <span>📲 Ray & Cherry Chat</span>
-        <button className="install-btn">Install</button>
+      <div className="top-bar">
+
+        <button className="menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          ☰
+        </button>
+
+        <div className="profile">
+          <img src={avatar || "https://via.placeholder.com/40"} />
+          <span>{user}</span>
+        </div>
+
+        <button className="menu-btn" onClick={onLogout}>
+          Logout
+        </button>
+
       </div>
 
       <div className="chat-layout">
 
-        {/* SIDEBAR (ONLY ONE CHAT) */}
-        <div className="sidebar">
+        {/* SIDEBAR */}
+        <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
 
-          <h3>{user}</h3>
-          <button onClick={onLogout}>Logout</button>
+          <h3>Chats</h3>
 
           <div
             className={`chat-item ${activeChat === otherUser ? "active" : ""}`}
-            onClick={() => setActiveChat(otherUser)}
+            onClick={() => {
+              setActiveChat(otherUser);
+              setSidebarOpen(false);
+            }}
           >
-            💬 Chat with {otherUser}
+            💬 {otherUser}
           </div>
 
         </div>
 
-        {/* CHAT AREA */}
+        {/* CHAT */}
         <div className="chat-container">
 
           <div className="chat-header">
             Chat with {activeChat}
           </div>
 
-          {/* SCROLL AREA ONLY */}
+          {/* MESSAGES */}
           <div className="chat-body">
 
             {messages
@@ -94,7 +110,7 @@ export default function Chat({ user, onLogout }) {
 
           </div>
 
-          {/* FIXED INPUT BAR */}
+          {/* INPUT */}
           <div className="chat-input">
 
             <input
