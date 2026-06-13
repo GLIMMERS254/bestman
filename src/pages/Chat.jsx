@@ -5,15 +5,18 @@ import { uploadFile } from "../services/upload";
 export default function Chat({ user, onLogout }) {
 
   const [activeChat, setActiveChat] = useState(
-    user === "Raymond" ? "Cherry" : "Raymond"
+    user === "Ray" ? "Cherry" : "Ray"
   );
 
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [typingUser, setTypingUser] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+
+  const avatar = localStorage.getItem("avatar");
 
   // =========================
   // LOGIN
@@ -21,7 +24,8 @@ export default function Chat({ user, onLogout }) {
   useEffect(() => {
     socket.emit("login", {
       user,
-      deviceId: navigator.userAgent
+      deviceId: navigator.userAgent,
+      avatar
     });
   }, []);
 
@@ -30,9 +34,11 @@ export default function Chat({ user, onLogout }) {
   // =========================
   useEffect(() => {
     socket.on("force-logout", () => {
-      localStorage.removeItem("chat_user");
+      localStorage.clear();
       window.location.reload();
     });
+
+    return () => socket.off("force-logout");
   }, []);
 
   // =========================
@@ -77,6 +83,29 @@ export default function Chat({ user, onLogout }) {
     return () => socket.off("message");
 
   }, []);
+
+  // =========================
+  // TYPING
+  // =========================
+  useEffect(() => {
+    socket.on("typing", ({ from, to }) => {
+      if (to === user) {
+        setTypingUser(from);
+        setTimeout(() => setTypingUser(null), 1000);
+      }
+    });
+
+    return () => socket.off("typing");
+  }, []);
+
+  const handleTyping = (value) => {
+    setText(value);
+
+    socket.emit("typing", {
+      from: user,
+      to: activeChat
+    });
+  };
 
   // =========================
   // SEND MESSAGE
@@ -141,25 +170,42 @@ export default function Chat({ user, onLogout }) {
     mediaRecorderRef.current?.stop();
   };
 
+  // =========================
+  // UI
+  // =========================
   return (
     <div className="chat-layout">
 
       {/* SIDEBAR */}
       <div className="sidebar">
+
         <div className="user-header">
-          <h3>{user}</h3>
+          <h3>💚 Ray & Cherry</h3>
           <button onClick={onLogout}>Logout</button>
         </div>
 
-        {["Raymond", "Cherry"].map(u => (
+        {["Ray", "Cherry"].map(u => (
           <div
             key={u}
-            className={`chat-item ${activeChat === u ? "active" : ""}`}
             onClick={() => setActiveChat(u)}
+            className={`chat-item ${activeChat === u ? "active" : ""}`}
           >
-            {u} {onlineUsers.includes(u) ? "🟢" : "⚪"}
+
+            <img
+              src={avatar || "https://via.placeholder.com/40"}
+              className="avatar"
+            />
+
+            <div className="chat-info">
+              <strong>{u}</strong>
+              <small>
+                {onlineUsers.includes(u) ? "🟢 online" : "⚪ offline"}
+              </small>
+            </div>
+
           </div>
         ))}
+
       </div>
 
       {/* CHAT */}
@@ -178,6 +224,7 @@ export default function Chat({ user, onLogout }) {
                 className={`msg ${m.sender === user ? "me" : "them"}`}
                 onDoubleClick={() => deleteMessage(m.id)}
               >
+
                 {m.type === "text" && m.text}
                 {m.type === "voice" && <audio controls src={m.url} />}
 
@@ -185,25 +232,47 @@ export default function Chat({ user, onLogout }) {
                   {m.status === "sent" && "✓"}
                   {m.status === "seen" && "✓✓"}
                 </small>
+
               </div>
             ))}
+
         </div>
 
-        {/* INPUT ALWAYS FIXED */}
+        {/* TYPING */}
+        {typingUser && (
+          <div className="typing">
+            {typingUser} is typing...
+          </div>
+        )}
+
+        {/* INPUT */}
         <div className="chat-input">
+
           <input
             value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Type a message..."
+            onChange={(e) => handleTyping(e.target.value)}
+            placeholder="Type message..."
           />
 
           <button className="send-btn" onClick={sendMessage}>
             Send
           </button>
+
         </div>
 
-        <button onMouseDown={startRecording} onMouseUp={stopRecording}>
-          🎤 Hold
+        {/* VOICE */}
+        <button
+          onMouseDown={startRecording}
+          onMouseUp={stopRecording}
+          style={{
+            background: "#25d366",
+            border: "none",
+            padding: "10px",
+            borderRadius: "50%",
+            margin: "10px"
+          }}
+        >
+          🎤
         </button>
 
       </div>
