@@ -18,32 +18,6 @@ body {
 }
 
 /* =========================
-   ONLINE BAR
-========================= */
-.online-bar {
-  background: #111b21;
-  padding: 8px;
-  text-align: center;
-  font-size: 14px;
-}
-
-/* =========================
-   INSTALL BUTTON
-========================= */
-.install-btn {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: #25d366;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 20px;
-  font-weight: bold;
-  cursor: pointer;
-  z-index: 9999;
-}
-
-/* =========================
    CHAT LAYOUT
 ========================= */
 .chat-layout {
@@ -52,7 +26,7 @@ body {
 }
 
 /* =========================
-   SIDEBAR
+   SIDEBAR (WHATSAPP STYLE)
 ========================= */
 .sidebar {
   width: 25%;
@@ -61,21 +35,23 @@ body {
   overflow-y: auto;
 }
 
+/* USER HEADER */
 .user-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+/* CHAT ITEM */
 .chat-item {
   padding: 10px;
-  margin: 5px 0;
+  margin: 6px 0;
   background: #202c33;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: 10px;
 }
 
 .chat-item.active {
@@ -83,14 +59,14 @@ body {
   color: black;
 }
 
-/* avatar */
+/* PROFILE IMAGE */
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
 }
 
-/* chat info */
+/* USER INFO */
 .chat-info {
   display: flex;
   flex-direction: column;
@@ -103,7 +79,7 @@ body {
   width: 75%;
   display: flex;
   flex-direction: column;
-  background: url("/app.jpg") center/cover;
+  background: #0b141a;
 }
 
 /* HEADER */
@@ -125,7 +101,7 @@ body {
 }
 
 .msg {
-  max-width: 60%;
+  max-width: 70%;
   padding: 8px;
   margin: 6px;
   border-radius: 10px;
@@ -147,7 +123,7 @@ body {
 }
 
 /* =========================
-   INPUT BAR
+   INPUT
 ========================= */
 .chat-input {
   display: flex;
@@ -155,8 +131,6 @@ body {
   background: #111b21;
   gap: 8px;
   align-items: center;
-  position: sticky;
-  bottom: 0;
 }
 
 .chat-input input {
@@ -168,56 +142,16 @@ body {
 }
 
 /* =========================
-   CALL UI
-========================= */
-.call-ui {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: black;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.call-ui video {
-  width: 100%;
-  max-height: 45%;
-  object-fit: cover;
-}
-
-.end-call-btn {
-  margin-top: 10px;
-  padding: 10px 15px;
-  background: red;
-  border: none;
-  color: white;
-  border-radius: 10px;
-}
-
-/* =========================
    TYPING
 ========================= */
 .typing {
   font-size: 12px;
   opacity: 0.7;
-  padding: 5px;
+  padding: 5px 10px;
 }
 
 /* =========================
-   LOADING
-========================= */
-.loading {
-  color: white;
-  text-align: center;
-  margin-top: 50px;
-}
-
-/* =========================
-   LOGIN SCREEN (NEW)
+   LOGIN
 ========================= */
 .login-screen {
   height: 100vh;
@@ -238,7 +172,6 @@ body {
 
 .login-card .logo {
   font-size: 40px;
-  margin-bottom: 10px;
 }
 
 .login-card input {
@@ -247,7 +180,6 @@ body {
   margin: 10px 0;
   border-radius: 10px;
   border: 1px solid #ccc;
-  outline: none;
 }
 
 .login-card button {
@@ -258,14 +190,30 @@ body {
   border-radius: 10px;
   color: white;
   font-weight: bold;
-  cursor: pointer;
 }
 
-.error-box {
-  background: #ffdddd;
-  color: red;
-  padding: 8px;
-  border-radius: 8px;
-  font-size: 13px;
-  margin-bottom: 10px;
+/* =========================
+   MOBILE FIX
+========================= */
+@media (max-width: 768px) {
+
+  .chat-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    height: 120px;
+  }
+
+  .chat-container {
+    width: 100%;
+    height: calc(100vh - 120px);
+  }
+
+  .msg {
+    max-width: 80%;
+  }
 }

@@ -1,27 +1,23 @@
 import { useState } from "react";
+import { socket } from "../services/socket";
 
 export default function Login({ onLogin }) {
 
   const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [avatar, setAvatar] = useState("");
 
-  const correctPassword = "15.01.2026";
+  const handleLogin = () => {
 
-  const handleSubmit = () => {
+    if (!name.trim()) return;
 
-    if (name.trim() === "") {
-      setError("Enter your name");
-      return;
-    }
-
-    if (password !== correctPassword) {
-      setError("Wrong password");
-      return;
-    }
-
-    setError("");
     localStorage.setItem("user", name);
+
+    socket.emit("login", {
+      user: name,
+      deviceId: navigator.userAgent,
+      avatar
+    });
+
     onLogin(name);
   };
 
@@ -30,28 +26,21 @@ export default function Login({ onLogin }) {
 
       <div className="login-card">
 
-        <div className="logo">💚</div>
-
-        <h2>Secure Chat Login</h2>
-        <p>Cherry & Raymond Chat</p>
-
-        {error && <div className="error-box">{error}</div>}
+        <h1>💬 WhatsApp Style Chat</h1>
 
         <input
-          type="text"
-          placeholder="Enter name (Cherry / Raymond)"
+          placeholder="Enter your name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
         <input
-          type="password"
-          placeholder="Enter password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Profile picture URL"
+          value={avatar}
+          onChange={(e) => setAvatar(e.target.value)}
         />
 
-        <button onClick={handleSubmit}>
+        <button onClick={handleLogin}>
           Enter Chat
         </button>
 
