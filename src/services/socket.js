@@ -1,8 +1,3 @@
 import { io } from "socket.io-client";
 
-export const socket = io("https://bestman-1.onrender.com", {
-  transports: ["websocket"],
-  reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 2000
-});
+export const socket = io(import.meta.env.VITE_API_URL);
