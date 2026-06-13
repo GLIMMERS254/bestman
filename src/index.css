@@ -1,22 +1,93 @@
 /* ===================================================
-   GLOBAL STYLING RESET
+   GLOBAL CLEAN INTERFACE INITIALIZATION
 =================================================== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
 }
 
 body {
   background: #0b141a;
   overflow: hidden;
   height: 100vh;
-  height: 100dvh; /* Dynamic mobile viewport tracking */
+  height: 100dvh; /* Seamless mobile address bar tracking */
 }
 
 /* ===================================================
-   APP CORE WRAPPER LAYOUT
+   CENTRALIZED ENCRYPTED LOGIN PANEL
+=================================================== */
+.login-screen-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #0b141a;
+  padding: 20px;
+}
+
+.login-card {
+  background: #111b21;
+  border-radius: 16px;
+  padding: 36px 24px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid #222e35;
+  text-align: center;
+}
+
+.login-card h2 {
+  color: #e9edef;
+  font-size: 24px;
+  margin-bottom: 24px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid #2a3942;
+  background: #202c33;
+  color: #e9edef;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.login-card input:focus {
+  border-color: #00a884;
+}
+
+/* Hard-Themed Green Interface Action Keys */
+.login-card button,
+.login-btn-green {
+  background: #00a884 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  padding: 14px 20px !important;
+  border-radius: 28px !important;
+  border: none !important;
+  cursor: pointer;
+  width: 100%;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.15s ease-out;
+}
+
+.login-card button:hover,
+.login-btn-green:hover {
+  background: #008f72 !important;
+}
+
+/* ===================================================
+   APPLICATION MASTER APP WINDOW
 =================================================== */
 .app-container {
   height: 100vh;
@@ -27,9 +98,6 @@ body {
   overflow: hidden;
 }
 
-/* ===================================================
-   WHATSAPP SYSTEM TOP NAVIGATION BAR
-=================================================== */
 .top-bar {
   height: 60px;
   background: #202c33;
@@ -38,44 +106,40 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  border-b: 1px solid #2a3942;
-  z-index: 10;
+  border-bottom: 1px solid #222e35;
+  z-index: 100;
 }
 
 .top-bar .left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .menu-btn {
   background: #00a884;
   border: none;
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-radius: 20px;
   color: white;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
-  transition: background 0.2s;
-}
-
-.menu-btn:hover {
-  background: #008f72;
 }
 
 .profile {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.profile img {
+.user-header-avatar {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  object-cover: cover;
+  object-fit: cover;
   border: 1.5px solid #00a884;
+  background: #111b21;
 }
 
 .status-indicator {
@@ -89,139 +153,31 @@ body {
   background: transparent;
   border: 1px solid #ea0038;
   color: #ea0038;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
-  font-weight: bold;
-}
-
-.logout-btn:hover {
-  background: rgba(234, 0, 56, 0.1);
 }
 
 /* ===================================================
-   CHAT SYSTEM BLOCKS
+   MAIN WORKSPACE ARCHITECTURE GRID
 =================================================== */
 .chat-layout {
   display: flex;
-  flex-1: 1;
+  flex: 1;
   height: calc(100vh - 60px);
   height: calc(100dvh - 60px);
-  width: 100%;
   position: relative;
+  overflow: hidden;
 }
 
-/* ===================================================
-   SLIDING NAVIGATION MENU (SIDEBAR)
-=================================================== */
-.sidebar {
-  position: absolute;
-  top: 0;
-  left: -100%; /* Hidden off-canvas by default */
-  width: 280px;
-  height: 100%;
-  background: #111b21;
-  color: white;
-  z-index: 200;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0s;
-  padding: 16px;
-  border-right: 1px solid #222e35;
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar.open {
-  left: 0;
-  transform: translateX(100%); /* Slides smoothly onto screen canvas */
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-b: 1px solid #202c33;
-}
-
-.sidebar-header h3 {
-  font-size: 16px;
-  color: #e9edef;
-}
-
-.close-sidebar-btn {
-  background: transparent;
-  border: none;
-  color: #8696a0;
-  font-size: 26px;
-  cursor: pointer;
-}
-
-.chat-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  background: #202c33;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.chat-item:hover {
-  background: #2a3942;
-}
-
-.chat-item.active {
-  background: #005c4b;
-  border-left: 4px solid #00a884;
-}
-
-.avatar-placeholder {
-  width: 40px;
-  height: 40px;
-  background: #00a884;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  color: white;
-}
-
-.chat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-info small {
-  color: #8696a0;
-  font-size: 11px;
-  margin-top: 2px;
-}
-
-/* SIDEBAR DARK BACKGROUND BACKDROP */
-.sidebar-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 150;
-  backdrop-filter: blur(2px);
-}
-
-/* ===================================================
-   MAIN FULLSCREEN CHAT AREA CANVAS
-=================================================== */
 .chat-container {
-  flex: 1; /* Automatically takes up 100% full grid screen when menu is hidden */
+  flex: 1;
   width: 100%;
   display: flex;
   flex-direction: column;
   background-color: #0b141a;
-  background-image: url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png"); /* Classic WhatsApp tile mesh background */
-  background-blend-mode: overlay;
-  background-opacity: 0.06;
   height: 100%;
   overflow: hidden;
   position: relative;
@@ -230,9 +186,9 @@ body {
 .chat-header {
   background: #202c33;
   color: #e9edef;
-  padding: 14px 20px;
+  padding: 12px 20px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13.5px;
   border-bottom: 1px solid #111b21;
 }
 
@@ -241,7 +197,7 @@ body {
 }
 
 /* ===================================================
-   SCROLLABLE MESSAGE LOG VIEWPORT
+   SCROLL TIMELINE LOG VIEWPORT Layer
 =================================================== */
 .chat-body {
   flex: 1;
@@ -250,10 +206,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-bottom: 90px; /* Safe clearing block so input bar never overlaps contents */
+  /* Leaves a safe padding clearing buffer layer so text lines never slip under entry dock */
+  padding-bottom: 124px; 
 }
 
-/* CONTAINER MESSAGE BUBBLES */
 .msg {
   max-width: 75%;
   padding: 8px 12px;
@@ -263,16 +219,9 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-  animation: messageSlide 0.20s ease-out;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
 }
 
-@keyframes messageSlide {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Outgoing Messages (Ray / Me) */
 .msg.me {
   background: #005c4b;
   color: #e9edef;
@@ -280,7 +229,6 @@ body {
   border-top-right-radius: 0;
 }
 
-/* Incoming Messages (Cherry / Partner) */
 .msg.them {
   background: #202c33;
   color: #e9edef;
@@ -289,52 +237,53 @@ body {
 }
 
 .voice-player {
-  max-width: 240px;
+  max-width: 230px;
   height: 36px;
   margin: 4px 0;
 }
 
-/* STATUS TICK METRICS */
 .msg-meta {
-  font-size: 10px;
-  color: rgba(233, 237, 239, 0.6);
+  font-size: 9.5px;
+  color: rgba(233, 237, 239, 0.55);
   align-self: flex-end;
   margin-top: 4px;
   display: flex;
   align-items: center;
   gap: 3px;
-  font-family: monospace;
 }
 
 .msg.me .ticks {
-  color: #53bdeb; /* Light blue checkmark system for read receipts */
+  color: #53bdeb;
 }
 
 /* ===================================================
-   FIXED BOTTOM KEYBOARD WHATSAPP INPUT ANCHOR
+   LIFTED ENTRY BAR PANEL + CUSTOM CREDIT FOOTER
 =================================================== */
 .input-panel-wrapper {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
+  bottom: 14px; /* Suspends panel safely above phone system margins */
+  left: 4%;
+  width: 92%;
   background: #111b21;
-  padding: 10px 16px;
-  border-top: 1px solid #222e35;
+  padding: 12px 14px 8px 14px;
+  border-radius: 16px;
+  border: 1px solid #222e35;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
   z-index: 99;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .chat-input-bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .chat-input-bar input {
   flex: 1;
-  padding: 12px 18px;
+  padding: 12px 16px;
   border-radius: 24px;
   border: none;
   outline: none;
@@ -347,71 +296,164 @@ body {
   color: #8696a0;
 }
 
-/* AUDIO RECORD BUTTON CONTAINER */
 .mic-btn {
   background: #202c33;
   border: none;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   color: #00a884;
-  font-size: 18px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.1s;
 }
 
-.mic-btn:active {
-  background: #00a884;
-  color: white;
-  transform: scale(1.15);
-}
-
-/* WHATSAPP GREEN ACTION TRIGGER */
 .send-btn {
   background: #00a884;
   border: none;
-  padding: 12px 20px;
+  padding: 11px 18px;
   border-radius: 24px;
-  color: white;
-  font-weight: bold;
-  font-size: 14px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13.5px;
   cursor: pointer;
-  transition: background 0.15s;
 }
 
-.send-btn:hover {
-  background: #008f72;
+/* Custom Signature Core Footnote */
+.boyfriend-credit-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #8696a0;
+  letter-spacing: 0.3px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(42, 57, 66, 0.5);
+  font-weight: 500;
 }
 
 /* ===================================================
-   TYPING LOGIC COMPONENT LAYOUT
+   FLOATING ACTION ACTION PIPES (Left Center Anchor)
+=================================================== */
+.sidebar-install-floating-btn {
+  position: absolute;
+  left: 16px;
+  top: 45%;
+  transform: translateY(-50%);
+  background: #00a884;
+  color: #ffffff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 95;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+
+/* ===================================================
+   SLIDING NAVIGATION DECK DESIGN CONFIG
+=================================================== */
+.sidebar {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 270px;
+  height: 100%;
+  background: #111b21;
+  z-index: 500;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), left 0s;
+  padding: 16px;
+  border-right: 1px solid #222e35;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.open {
+  left: 0;
+  transform: translateX(100%);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #202c33;
+}
+
+.close-sidebar-btn {
+  background: transparent;
+  border: none;
+  color: #8696a0;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #202c33;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.chat-item.active {
+  background: #005c4b;
+}
+
+.avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  background: #00a884;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+}
+
+.chat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 450;
+  backdrop-filter: blur(1px);
+}
+
+/* ===================================================
+   ANIMATION TIME DECK FOR LIVE INDICATORS
 =================================================== */
 .typing-bubble {
   align-self: flex-start;
   background: #202c33;
-  padding: 10px 16px;
-  border-radius: 16px;
+  padding: 8px 14px;
+  border-radius: 12px;
   border-top-left-radius: 0;
   display: flex;
   align-items: center;
-  gap: 2px;
-  margin-top: 4px;
 }
 
 .dot {
-  font-size: 24px;
+  font-size: 20px;
   line-height: 0;
   color: #00a884;
-  animation: dotPulse 1.2s infinite;
+  animation: wavePulse 1.2s infinite;
 }
-
 .animate-two { animation-delay: 0.2s; }
 .animate-three { animation-delay: 0.4s; }
 
-@keyframes dotPulse {
+@keyframes wavePulse {
   0%, 100% { opacity: 0.2; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-3px); }
+  50% { opacity: 1; transform: translateY(-2px); }
 }

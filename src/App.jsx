@@ -4,39 +4,33 @@ import Chat from "./pages/Chat";
 import { socket } from "./services/socket";
 
 export default function App() {
-
-  // =========================
-  // STATE
-  // =========================
   const [user, setUser] = useState(null);
+  const [avatar, setAvatar] = useState("");
   const [loading, setLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState([]);
-
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   // =========================
-  // AUTO LOGIN
+  // AUTO LOGIN STORAGE CHECK
   // =========================
   useEffect(() => {
-
     const savedUser = localStorage.getItem("user");
+    const savedAvatar = localStorage.getItem("avatar");
 
     if (savedUser) {
       setUser(savedUser);
+      if (savedAvatar) setAvatar(savedAvatar);
       socket.emit("join", savedUser);
     }
-
     setLoading(false);
-
   }, []);
 
   // =========================
-  // SOCKET CONNECTION
+  // SOCKET STATE SYNCHRONIZATION
   // =========================
   useEffect(() => {
-
     socket.on("connect", () => {
-      console.log("Connected:", socket.id);
+      console.log("Secure Connection Established:", socket.id);
     });
 
     socket.on("online-users", (users) => {
@@ -47,154 +41,90 @@ export default function App() {
       socket.off("connect");
       socket.off("online-users");
     };
-
   }, []);
 
   // =========================
-  // NOTIFICATION PERMISSION
+  // NATIVE API PERMISSIONS
   // =========================
   useEffect(() => {
-
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
-
   }, []);
 
   // =========================
-  // SERVICE WORKER (PWA PUSH BASE)
+  // PWA SERVICE WORKER
   // =========================
   useEffect(() => {
-
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js");
+      navigator.serviceWorker.register("/sw.js").catch((err) => {
+        console.log("Service Worker Registration Postponed:", err);
+      });
     }
-
   }, []);
 
   // =========================
-  // PWA INSTALL HANDLER
+  // PWA INSTALL DEFERMENT ENGINE
   // =========================
   useEffect(() => {
-
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-
     return () => window.removeEventListener("beforeinstallprompt", handler);
-
   }, []);
 
   const installApp = async () => {
-
     if (!deferredPrompt) return;
 
     deferredPrompt.prompt();
     const result = await deferredPrompt.userChoice;
 
     if (result.outcome === "accepted") {
-      console.log("App installed");
+      console.log("PWA Installation Verified Successfully");
     }
-
     setDeferredPrompt(null);
   };
 
-  // =========================
-  // LOGIN
-  // =========================
-  const handleLogin = (username) => {
-
+  const handleLogin = (username, avatarUrl) => {
     setUser(username);
+    setAvatar(avatarUrl);
     localStorage.setItem("user", username);
-
+    localStorage.setItem("avatar", avatarUrl);
     socket.emit("join", username);
   };
 
-  // =========================
-  // LOGOUT
-  // =========================
   const logout = () => {
-
     localStorage.removeItem("user");
+    localStorage.removeItem("avatar");
     setUser(null);
-
+    setAvatar("");
   };
 
-  // =========================
-  // LOADING SCREEN
-  // =========================
   if (loading) {
     return (
-      <div style={{
-        color: "white",
-        textAlign: "center",
-        marginTop: 50
-      }}>
-        Loading chat...
+      <div className="login-screen-container">
+        <div style={{ color: "#00a884", fontWeight: "bold", fontSize: "16px" }}>
+          Initializing Encrypted Channels...
+        </div>
       </div>
     );
   }
 
-  // =========================
-  // LOGIN SCREEN
-  // =========================
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
 
-  // =========================
-  // MAIN APP
-  // =========================
   return (
-    <div>
-
-      {/* =========================
-          INSTALL APP BUTTON
-      ========================= */}
-      {deferredPrompt && (
-        <button
-          onClick={installApp}
-          style={{
-            position: "fixed",
-            top: 10,
-            right: 10,
-            background: "#25d366",
-            border: "none",
-            padding: "10px 15px",
-            borderRadius: 20,
-            fontWeight: "bold",
-            zIndex: 9999,
-            cursor: "pointer"
-          }}
-        >
-          📲 Install App
-        </button>
-      )}
-
-      {/* =========================
-          ONLINE USERS BAR
-      ========================= */}
-      <div style={{
-        background: "#111b21",
-        color: "white",
-        padding: 8,
-        textAlign: "center"
-      }}>
-        Online users: {onlineUsers.length}
-      </div>
-
-      {/* =========================
-          CHAT APP
-      ========================= */}
-      <Chat
-        user={user}
-        onLogout={logout}
-        onlineUsers={onlineUsers}
-      />
-
-    </div>
+    <Chat
+      user={user}
+      avatar={avatar}
+      onLogout={logout}
+      onlineUsers={onlineUsers}
+      deferredPrompt={deferredPrompt}
+      onInstall={installApp}
+    />
   );
 }

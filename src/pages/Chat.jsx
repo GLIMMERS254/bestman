@@ -2,65 +2,56 @@ import { useEffect, useRef, useState } from "react";
 import { socket } from "../services/socket";
 import { uploadFile } from "../services/upload";
 
-export default function Chat({ user, avatar, onLogout }) {
-  const otherUser = user === "Ray" ? "Cherry" : "Ray";
+export default function Chat({ user, avatar, onLogout, onlineUsers, deferredPrompt, onInstall }) {
+  // Enforces structural workspace naming constraints
+  const otherUser = user === "Raymond" ? "Anne" : "Raymond";
 
   const [activeChat, setActiveChat] = useState(otherUser);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [typingUser, setTypingUser] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const chatBodyRef = useRef(null);
 
-  // Auto scroll to bottom when a new message arrives
+  // Smooth layout bottom lock scroll configuration
   useEffect(() => {
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
     }
   }, [messages, typingUser]);
 
-  // LOGIN
-  useEffect(() => {
-    socket.emit("login", {
-      user,
-      avatar,
-      deviceId: navigator.userAgent
-    });
-  }, [user, avatar]);
-
-  // ONLINE USERS
-  useEffect(() => {
-    socket.on("online-users", setOnlineUsers);
-    return () => socket.off("online-users");
-  }, []);
-
-  // RECEIVE MESSAGES
+  // =========================
+  // MESSAGE STREAM TRANSLATION
+  // =========================
   useEffect(() => {
     socket.on("message", (msg) => {
-      setMessages(prev => [...prev, msg]);
+      setMessages((prev) => [...prev, msg]);
       socket.emit("message-seen", { messageId: msg.id, user });
     });
 
     socket.on("message-updated", ({ messageId, status }) => {
-      setMessages(prev =>
-        prev.map(m => (m.id === messageId ? { ...m, status } : m))
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, status } : m))
       );
     });
 
     socket.on("message-deleted", ({ messageId }) => {
-      setMessages(prev => prev.filter(m => m.id !== messageId));
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
     });
 
     return () => {
       socket.off("message");
+      socket.off("message-updated");
+      socket.off("message-deleted");
     };
   }, [user]);
 
-  // TYPING INDICATOR
+  // =========================
+  // TYPING CHANNEL HOOKS
+  // =========================
   useEffect(() => {
     socket.on("typing", ({ from, to }) => {
       if (to === user) {
@@ -71,8 +62,8 @@ export default function Chat({ user, avatar, onLogout }) {
     return () => socket.off("typing");
   }, [user]);
 
-  // SEND MESSAGE
-  const sendMessage = () => {
+  const sendMessage = (e) => {
+    if (e) e.preventDefault();
     if (!text.trim()) return;
 
     const msg = {
@@ -98,7 +89,9 @@ export default function Chat({ user, avatar, onLogout }) {
     socket.emit("delete-message", { messageId: id });
   };
 
-  // RECORD VOICE NOTES
+  // =========================
+  // HARDWARE RECORDING ENGINE
+  // =========================
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -112,40 +105,48 @@ export default function Chat({ user, avatar, onLogout }) {
 
       recorder.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        const file = new File([blob], "voice.webm");
+        const file = new File([blob], "voice.webm", { type: "audio/webm" });
         const data = await uploadFile(file);
 
-        socket.emit("message", {
-          id: Date.now(),
-          sender: user,
-          receiver: activeChat,
-          type: "voice",
-          url: data.url,
-          status: "sent"
-        });
+        if (data && data.url) {
+          socket.emit("message", {
+            id: Date.now(),
+            sender: user,
+            receiver: activeChat,
+            type: "voice",
+            url: data.url,
+            status: "sent",
+            createdAt: new Date()
+          });
+        }
       };
 
       recorder.start();
     } catch (err) {
-      console.error("Microphone access denied", err);
+      console.error("Microphone hardware connection rejected", err);
     }
   };
 
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current?.stream.getTracks().forEach((track) => track.stop());
   };
 
   return (
     <div className="app-container">
       
-      {/* TOP HEADER BAR */}
+      {/* TOP COMPONENT NAVIGATION PANEL */}
       <div className="top-bar">
         <div className="left">
           <button className="menu-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
             ☰ Chats
           </button>
           <div className="profile">
-            <img src={avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80"} alt="Avatar" />
+            <img 
+              src={avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80"} 
+              className="user-header-avatar" 
+              alt="Profile avatar" 
+            />
             <div>
               <b>{user}</b>
               <span className="status-indicator">
@@ -154,12 +155,12 @@ export default function Chat({ user, avatar, onLogout }) {
             </div>
           </div>
         </div>
-        <button className="logout-btn" onClick={onLogout}>Exit</button>
+        <button className="logout-btn" onClick={onLogout}>Exit Space</button>
       </div>
 
       <div className="chat-layout">
         
-        {/* SLIDING SIDEBAR OVERLAY */}
+        {/* SLIDING SIDEBAR COMPONENT BLOCK */}
         <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
           <div className="sidebar-header">
             <h3>Active Sessions</h3>
@@ -170,34 +171,46 @@ export default function Chat({ user, avatar, onLogout }) {
             className={`chat-item ${activeChat === otherUser ? "active" : ""}`}
             onClick={() => {
               setActiveChat(otherUser);
-              setIsSidebarOpen(false); // Autofills screen & closes menu on click
+              setIsSidebarOpen(false);
             }}
           >
             <div className="avatar-placeholder">{otherUser[0]}</div>
             <div className="chat-info">
               <b>{otherUser}</b>
-              <small>{onlineUsers.includes(otherUser) ? "online" : "offline"}</small>
+              {/* STRICT SOCKET-CONNECTED MONITORING ONLY */}
+              <small style={{ color: onlineUsers.includes(otherUser) ? "#00a884" : "#8696a0" }}>
+                {onlineUsers.includes(otherUser) ? "online" : "offline"}
+              </small>
             </div>
           </div>
         </div>
 
-        {/* CLICK BACKDROP TO CLOSE MENU */}
+        {/* COMPONENT OUTSIDE PANEL CLICK HOOK */}
         {isSidebarOpen && <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)}></div>}
 
-        {/* FULLSCREEN MAIN CHAT CANVAS */}
+        {/* FULLSCREEN CHAT AREA CANVAS */}
         <div className="chat-container">
+          
+          {/* PWA FLOATING APP ATTACHMENT ANCHOR (Left Center Location) */}
+          {deferredPrompt && (
+            <button className="sidebar-install-floating-btn" onClick={onInstall}>
+              📥 Install App
+            </button>
+          )}
+
           <div className="chat-header">
-            Channel Hub: <span>{activeChat}</span>
+            Secure Channel: <span>{activeChat}</span>
           </div>
 
-          {/* SECURE SCROLL VIEWPORT */}
+          {/* MESSAGE VIEWPORT BLOCK */}
           <div className="chat-body" ref={chatBodyRef}>
             {messages
-              .filter(m =>
-                (m.sender === user && m.receiver === activeChat) ||
-                (m.sender === activeChat && m.receiver === user)
+              .filter(
+                (m) =>
+                  (m.sender === user && m.receiver === activeChat) ||
+                  (m.sender === activeChat && m.receiver === user)
               )
-              .map(m => (
+              .map((m) => (
                 <div
                   key={m.id}
                   className={`msg ${m.sender === user ? "me" : "them"}`}
@@ -219,37 +232,40 @@ export default function Chat({ user, avatar, onLogout }) {
 
             {typingUser && (
               <div className="typing-bubble">
-                <span className="dot animate-one">.</span>
-                <span className="dot animate-two">.</span>
-                <span className="dot animate-three">.</span>
+                <small style={{ color: "#8696a0", marginRight: "6px" }}>{typingUser} typing</small>
+                <span className="dot">.</span><span className="dot animate-two">.</span><span className="dot animate-three">.</span>
               </div>
             )}
           </div>
 
-          {/* FIXED WHATSAPP INPUT ANCHOR CONTROLLER */}
+          {/* FIXED ELEVATED INPUT WRAPPER CONTROLLER */}
           <div className="input-panel-wrapper">
-            <div className="chat-input-bar">
+            <form onSubmit={sendMessage} className="chat-input-bar">
               <input
                 value={text}
                 onChange={(e) => handleTyping(e.target.value)}
                 placeholder="Type message..."
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               />
               
-              <button 
+              <button
+                type="button"
                 className="mic-btn"
                 onMouseDown={startRecording}
                 onMouseUp={stopRecording}
                 onTouchStart={startRecording}
                 onTouchEnd={stopRecording}
-                title="Hold to Record Voice Memo"
               >
                 🎤
               </button>
 
-              <button className="send-btn" onClick={sendMessage}>
+              <button type="submit" className="send-btn">
                 Send
               </button>
+            </form>
+            
+            {/* Custom Footer Credit Container */}
+            <div className="boyfriend-credit-footer">
+              Designed with ❤️ by your boyfriend Ray
             </div>
           </div>
 
