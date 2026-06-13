@@ -4,36 +4,48 @@ import { uploadFile } from "../services/upload";
 
 export default function Chat({ user, onLogout }) {
 
-  const partner = user === "Ray" ? "Cherry" : "Ray";
+  const [activeChat, setActiveChat] = useState(
+    user === "Raymond" ? "Cherry" : "Raymond"
+  );
 
-  const [activeChat, setActiveChat] = useState(partner);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [showChats, setShowChats] = useState(false);
-  const [typingUser, setTypingUser] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
-  const avatar = localStorage.getItem("avatar");
-
-  // ================= LOGIN =================
+  // =========================
+  // LOGIN
+  // =========================
   useEffect(() => {
     socket.emit("login", {
       user,
-      deviceId: navigator.userAgent,
-      avatar
+      deviceId: navigator.userAgent
     });
   }, []);
 
-  // ================= ONLINE =================
+  // =========================
+  // FORCE LOGOUT
+  // =========================
+  useEffect(() => {
+    socket.on("force-logout", () => {
+      localStorage.removeItem("chat_user");
+      window.location.reload();
+    });
+  }, []);
+
+  // =========================
+  // ONLINE USERS
+  // =========================
   useEffect(() => {
     socket.on("online-users", setOnlineUsers);
     return () => socket.off("online-users");
   }, []);
 
-  // ================= MESSAGES =================
+  // =========================
+  // MESSAGES
+  // =========================
   useEffect(() => {
 
     socket.on("message", (msg) => {
@@ -45,41 +57,30 @@ export default function Chat({ user, onLogout }) {
         });
       }
 
-      socket.emit("message-seen", { messageId: msg.id });
+      socket.emit("message-seen", {
+        messageId: msg.id
+      });
     });
 
     socket.on("message-updated", ({ messageId, status }) => {
       setMessages(prev =>
-        prev.map(m => m.id === messageId ? { ...m, status } : m)
+        prev.map(m =>
+          m.id === messageId ? { ...m, status } : m
+        )
       );
+    });
+
+    socket.on("message-deleted", ({ messageId }) => {
+      setMessages(prev => prev.filter(m => m.id !== messageId));
     });
 
     return () => socket.off("message");
 
   }, []);
 
-  // ================= TYPING =================
-  useEffect(() => {
-    socket.on("typing", ({ from, to }) => {
-      if (to === user) {
-        setTypingUser(from);
-        setTimeout(() => setTypingUser(null), 1000);
-      }
-    });
-
-    return () => socket.off("typing");
-  }, []);
-
-  const handleTyping = (value) => {
-    setText(value);
-
-    socket.emit("typing", {
-      from: user,
-      to: activeChat
-    });
-  };
-
-  // ================= SEND =================
+  // =========================
+  // SEND MESSAGE
+  // =========================
   const sendMessage = () => {
     if (!text.trim()) return;
 
@@ -96,7 +97,16 @@ export default function Chat({ user, onLogout }) {
     setText("");
   };
 
-  // ================= VOICE =================
+  // =========================
+  // DELETE MESSAGE
+  // =========================
+  const deleteMessage = (id) => {
+    socket.emit("delete-message", { messageId: id });
+  };
+
+  // =========================
+  // VOICE NOTES
+  // =========================
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -131,107 +141,72 @@ export default function Chat({ user, onLogout }) {
     mediaRecorderRef.current?.stop();
   };
 
-  // ================= FILTER =================
-  const chatMessages = messages.filter(m =>
-    (m.sender === user && m.receiver === activeChat) ||
-    (m.sender === activeChat && m.receiver === user)
-  );
-
   return (
-    <div className="mobile-app">
+    <div className="chat-layout">
 
-      {/* HEADER */}
-      <div className="top-bar">
-        <button onClick={() => setShowChats(!showChats)}>
-          ☰
-        </button>
-
-        <div className="title">Ray & Cherry</div>
-
-        <button onClick={onLogout}>Logout</button>
-      </div>
-
-      {/* CHAT LIST (OVERLAY) */}
-      {showChats && (
-        <div className="chat-list">
-
-          {[partner].map(u => (
-            <div
-              key={u}
-              className="chat-item"
-              onClick={() => {
-                setActiveChat(u);
-                setShowChats(false);
-              }}
-            >
-
-              <img
-                src={avatar || "https://via.placeholder.com/40"}
-                className="avatar"
-              />
-
-              <div>
-                <b>{u}</b>
-                <small>
-                  {onlineUsers.includes(u) ? "🟢 online" : "⚪ offline"}
-                </small>
-              </div>
-
-            </div>
-          ))}
-
+      {/* SIDEBAR */}
+      <div className="sidebar">
+        <div className="user-header">
+          <h3>{user}</h3>
+          <button onClick={onLogout}>Logout</button>
         </div>
-      )}
 
-      {/* CHAT BODY (WHITE LIKE WHATSAPP) */}
-      <div className="chat-screen">
-
-        {chatMessages.map(m => (
+        {["Raymond", "Cherry"].map(u => (
           <div
-            key={m.id}
-            className={`msg ${m.sender === user ? "me" : "them"}`}
+            key={u}
+            className={`chat-item ${activeChat === u ? "active" : ""}`}
+            onClick={() => setActiveChat(u)}
           >
-            {m.type === "text" && m.text}
-            {m.type === "voice" && <audio controls src={m.url} />}
-
-            <small>
-              {m.status === "sent" && "✓"}
-              {m.status === "seen" && "✓✓"}
-            </small>
+            {u} {onlineUsers.includes(u) ? "🟢" : "⚪"}
           </div>
         ))}
-
-        {typingUser && (
-          <div className="typing">
-            {typingUser} is typing...
-          </div>
-        )}
-
       </div>
 
-      {/* INPUT */}
-      <div className="chat-input">
+      {/* CHAT */}
+      <div className="chat-container">
 
-        <input
-          value={text}
-          onChange={(e) => handleTyping(e.target.value)}
-          placeholder="Message..."
-        />
+        <div className="chat-body">
 
-        <button className="send-btn" onClick={sendMessage}>
-          ➤
-        </button>
+          {messages
+            .filter(m =>
+              (m.sender === user && m.receiver === activeChat) ||
+              (m.sender === activeChat && m.receiver === user)
+            )
+            .map(m => (
+              <div
+                key={m.id}
+                className={`msg ${m.sender === user ? "me" : "them"}`}
+                onDoubleClick={() => deleteMessage(m.id)}
+              >
+                {m.type === "text" && m.text}
+                {m.type === "voice" && <audio controls src={m.url} />}
 
-        <button
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-          className="mic-btn"
-        >
-          🎤
+                <small>
+                  {m.status === "sent" && "✓"}
+                  {m.status === "seen" && "✓✓"}
+                </small>
+              </div>
+            ))}
+        </div>
+
+        {/* INPUT ALWAYS FIXED */}
+        <div className="chat-input">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type a message..."
+          />
+
+          <button className="send-btn" onClick={sendMessage}>
+            Send
+          </button>
+        </div>
+
+        <button onMouseDown={startRecording} onMouseUp={stopRecording}>
+          🎤 Hold
         </button>
 
       </div>
-
     </div>
   );
 }
