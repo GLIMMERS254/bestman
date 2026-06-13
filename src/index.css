@@ -1,245 +1,116 @@
-/* =========================
-   GLOBAL
-========================= */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   background: #0b141a;
-  color: white;
 }
 
-/* =========================
-   APP WRAPPER
-========================= */
-.app-container {
+/* APP WRAPPER */
+.mobile-app {
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* =========================
-   CHAT LAYOUT
-========================= */
-.chat-layout {
-  display: flex;
-  height: 100vh;
-}
-
-/* =========================
-   SIDEBAR (WHATSAPP STYLE)
-========================= */
-.sidebar {
-  width: 25%;
-  background: #111b21;
-  padding: 10px;
-  overflow-y: auto;
-}
-
-/* USER HEADER */
-.user-header {
+/* TOP BAR */
+.top-bar {
+  background: #075e54;
+  color: white;
   display: flex;
   justify-content: space-between;
+  padding: 12px;
   align-items: center;
 }
 
-/* CHAT ITEM */
-.chat-item {
-  padding: 10px;
-  margin: 6px 0;
-  background: #202c33;
-  border-radius: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.title {
+  font-weight: bold;
 }
 
-.chat-item.active {
-  background: #25d366;
+/* CHAT LIST OVERLAY */
+.chat-list {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  width: 100%;
+  background: white;
   color: black;
+  z-index: 999;
 }
 
-/* PROFILE IMAGE */
+.chat-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* AVATAR */
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  object-fit: cover;
 }
 
-/* USER INFO */
-.chat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-/* =========================
-   CHAT AREA
-========================= */
-.chat-container {
-  width: 75%;
-  display: flex;
-  flex-direction: column;
-  background: #0b141a;
-}
-
-/* HEADER */
-.chat-header {
-  background: #202c33;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* =========================
-   MESSAGES
-========================= */
-.chat-body {
+/* CHAT SCREEN (WHITE LIKE WHATSAPP) */
+.chat-screen {
   flex: 1;
-  overflow-y: auto;
+  background: #e5ddd5;
   padding: 10px;
+  overflow-y: auto;
 }
 
+/* MESSAGE BUBBLES */
 .msg {
   max-width: 70%;
   padding: 8px;
-  margin: 6px;
+  margin: 5px;
   border-radius: 10px;
-  word-wrap: break-word;
 }
 
 .msg.me {
-  background: #005c4b;
+  background: #dcf8c6;
   margin-left: auto;
 }
 
 .msg.them {
-  background: #202c33;
+  background: white;
 }
 
-.chat-img {
-  max-width: 200px;
-  border-radius: 10px;
-}
-
-/* =========================
-   INPUT (FIXED + NEVER HIDDEN)
-========================= */
+/* INPUT BAR */
 .chat-input {
   display: flex;
   padding: 10px;
-  background: #111b21;
-  gap: 8px;
+  background: #fff;
+  gap: 5px;
   align-items: center;
-
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
 }
 
 .chat-input input {
   flex: 1;
-  padding: 12px;
-  border-radius: 25px;
-  border: none;
-  outline: none;
-  font-size: 14px;
-}
-
-/* SEND BUTTON (WHATSAPP GREEN) */
-.send-btn {
-  background: #25d366;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 25px;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.send-btn:hover {
-  background: #1ebe5d;
-}
-
-/* =========================
-   TYPING
-========================= */
-.typing {
-  font-size: 12px;
-  opacity: 0.7;
-  padding: 5px 10px;
-}
-
-/* =========================
-   LOGIN
-========================= */
-.login-screen {
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #0b141a;
-}
-
-.login-card {
-  background: white;
-  color: black;
-  width: 320px;
-  padding: 30px;
-  border-radius: 15px;
-  text-align: center;
-}
-
-.login-card .logo {
-  font-size: 40px;
-}
-
-.login-card input {
-  width: 100%;
   padding: 10px;
-  margin: 10px 0;
-  border-radius: 10px;
+  border-radius: 20px;
   border: 1px solid #ccc;
 }
 
-.login-card button {
-  width: 100%;
-  padding: 10px;
+/* SEND BUTTON */
+.send-btn {
   background: #25d366;
   border: none;
-  border-radius: 10px;
   color: white;
-  font-weight: bold;
+  padding: 10px;
+  border-radius: 50%;
 }
 
-/* =========================
-   MOBILE FIX (WHATSAPP STYLE)
-========================= */
-@media (max-width: 768px) {
+/* MIC BUTTON */
+.mic-btn {
+  background: #075e54;
+  border: none;
+  color: white;
+  padding: 10px;
+  border-radius: 50%;
+}
 
-  .chat-layout {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
-    display: flex;
-    overflow-x: auto;
-    height: 120px;
-  }
-
-  .chat-container {
-    width: 100%;
-    height: calc(100vh - 120px);
-  }
-
-  .msg {
-    max-width: 80%;
-  }
-
-  .chat-input {
-    position: sticky;
-    bottom: 0;
-  }
+/* TYPING */
+.typing {
+  font-size: 12px;
+  opacity: 0.7;
 }
