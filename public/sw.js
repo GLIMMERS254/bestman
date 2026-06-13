@@ -25,6 +25,7 @@ self.addEventListener("install", (event) => {
       return cache.addAll(urlsToCache);
     })
   );
+  self.skipWaiting();
 });
 
 // =========================
@@ -44,12 +45,18 @@ self.addEventListener("activate", (event) => {
       );
     })
   );
+  self.clients.claim();
 });
 
-// =========================
-// FETCH EVENT (CACHE FIRST)
-// =========================
+// ==========================================
+// FETCH EVENT (FIXED WITH PLUG-IN SAFETY GAP)
+// ==========================================
 self.addEventListener("fetch", (event) => {
+  // 🔥 CRITICAL FIX: Skip caching if it's a socket connect request or external API upload loop
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return; // Let the hardware send it straight to the internet natively!
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);
@@ -61,7 +68,6 @@ self.addEventListener("fetch", (event) => {
 // PUSH NOTIFICATION EVENT
 // =========================
 self.addEventListener("push", (event) => {
-
   let data = {
     title: "New Message",
     body: "You have a new message",
@@ -69,7 +75,11 @@ self.addEventListener("push", (event) => {
   };
 
   if (event.data) {
-    data = event.data.json();
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data.body = event.data.text();
+    }
   }
 
   const options = {
@@ -90,10 +100,19 @@ self.addEventListener("push", (event) => {
 // CLICK NOTIFICATION
 // =========================
 self.addEventListener("notificationclick", (event) => {
-
   event.notification.close();
 
   event.waitUntil(
-    clients.openWindow(event.notification.data.url)
+    clients.matchAll({ type: "window" }).then((clientList) => {
+      // If window is already open, just focus it instead of spawning endless duplicate tabs
+      for (const client of clientList) {
+        if (client.url === event.notification.data.url && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(event.notification.data.url);
+      }
+    })
   );
 });
