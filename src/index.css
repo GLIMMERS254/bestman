@@ -64,6 +64,7 @@ body {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  object-fit: cover;
 }
 
 /* USER INFO */
@@ -123,7 +124,7 @@ body {
 }
 
 /* =========================
-   INPUT
+   INPUT (FIXED + NEVER HIDDEN)
 ========================= */
 .chat-input {
   display: flex;
@@ -131,14 +132,34 @@ body {
   background: #111b21;
   gap: 8px;
   align-items: center;
+
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .chat-input input {
   flex: 1;
-  padding: 10px;
-  border-radius: 20px;
+  padding: 12px;
+  border-radius: 25px;
   border: none;
   outline: none;
+  font-size: 14px;
+}
+
+/* SEND BUTTON (WHATSAPP GREEN) */
+.send-btn {
+  background: #25d366;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 25px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.send-btn:hover {
+  background: #1ebe5d;
 }
 
 /* =========================
@@ -193,7 +214,7 @@ body {
 }
 
 /* =========================
-   MOBILE FIX
+   MOBILE FIX (WHATSAPP STYLE)
 ========================= */
 @media (max-width: 768px) {
 
@@ -215,5 +236,10 @@ body {
 
   .msg {
     max-width: 80%;
+  }
+
+  .chat-input {
+    position: sticky;
+    bottom: 0;
   }
 }
