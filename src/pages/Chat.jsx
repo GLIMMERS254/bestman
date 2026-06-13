@@ -8,7 +8,6 @@ export default function Chat({ user, avatar, onLogout }) {
   const [activeChat, setActiveChat] = useState(otherUser);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // LOGIN
   useEffect(() => {
@@ -47,83 +46,60 @@ export default function Chat({ user, avatar, onLogout }) {
   return (
     <div className="app-container">
 
-      {/* TOP BAR */}
-      <div className="top-bar">
+      {/* SIDEBAR */}
+      <div className="sidebar">
 
-        <button className="menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
-          ☰
-        </button>
+        <h3>{user}</h3>
+        <button onClick={onLogout}>Logout</button>
 
-        <div className="profile">
-          <img src={avatar || "https://via.placeholder.com/40"} />
-          <span>{user}</span>
+        <div
+          className={`chat-item ${activeChat === otherUser ? "active" : ""}`}
+          onClick={() => setActiveChat(otherUser)}
+        >
+          💬 Chat with {otherUser}
         </div>
-
-        <button className="menu-btn" onClick={onLogout}>
-          Logout
-        </button>
 
       </div>
 
-      <div className="chat-layout">
+      {/* CHAT AREA */}
+      <div className="chat-container">
 
-        {/* SIDEBAR */}
-        <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+        {/* HEADER */}
+        <div className="chat-header">
+          Chat with {activeChat}
+        </div>
 
-          <h3>Chats</h3>
+        {/* MESSAGES */}
+        <div className="chat-body">
 
-          <div
-            className={`chat-item ${activeChat === otherUser ? "active" : ""}`}
-            onClick={() => {
-              setActiveChat(otherUser);
-              setSidebarOpen(false);
-            }}
-          >
-            💬 {otherUser}
-          </div>
+          {messages
+            .filter(m =>
+              (m.sender === user && m.receiver === activeChat) ||
+              (m.sender === activeChat && m.receiver === user)
+            )
+            .map(m => (
+              <div
+                key={m.id}
+                className={`msg ${m.sender === user ? "me" : "them"}`}
+              >
+                {m.text}
+              </div>
+            ))}
 
         </div>
 
-        {/* CHAT */}
-        <div className="chat-container">
+        {/* INPUT (FIXED + ALWAYS VISIBLE) */}
+        <div className="chat-input">
 
-          <div className="chat-header">
-            Chat with {activeChat}
-          </div>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type message..."
+          />
 
-          {/* MESSAGES */}
-          <div className="chat-body">
-
-            {messages
-              .filter(m =>
-                (m.sender === user && m.receiver === activeChat) ||
-                (m.sender === activeChat && m.receiver === user)
-              )
-              .map(m => (
-                <div
-                  key={m.id}
-                  className={`msg ${m.sender === user ? "me" : "them"}`}
-                >
-                  {m.text}
-                </div>
-              ))}
-
-          </div>
-
-          {/* INPUT */}
-          <div className="chat-input">
-
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Type message..."
-            />
-
-            <button className="send-btn" onClick={sendMessage}>
-              Send
-            </button>
-
-          </div>
+          <button className="send-btn" onClick={sendMessage}>
+            Send
+          </button>
 
         </div>
 
