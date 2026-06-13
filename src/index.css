@@ -10,20 +10,17 @@ body {
 }
 
 /* =========================
-   TOP BAR (INSTALL + TITLE)
+   TOP BAR
 ========================= */
 .online-bar {
   background: #111b21;
   padding: 10px;
-  text-align: center;
-  font-weight: bold;
-  font-size: 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: bold;
 }
 
-/* INSTALL BUTTON */
 .install-btn {
   background: #25d366;
   border: none;
@@ -34,7 +31,7 @@ body {
 }
 
 /* =========================
-   APP WRAPPER
+   APP
 ========================= */
 .app-container {
   height: 100vh;
@@ -51,7 +48,7 @@ body {
 }
 
 /* =========================
-   SIDEBAR (CHATS LIST)
+   SIDEBAR (ONLY 1 CHAT)
 ========================= */
 .sidebar {
   width: 30%;
@@ -62,7 +59,7 @@ body {
 
 /* CHAT ITEM */
 .chat-item {
-  padding: 10px;
+  padding: 12px;
   margin: 6px 0;
   background: #202c33;
   border-radius: 10px;
@@ -75,27 +72,26 @@ body {
 }
 
 /* =========================
-   CHAT AREA (WHITE LIKE WHATSAPP)
+   CHAT AREA (WHATSAPP STYLE)
 ========================= */
 .chat-container {
   width: 70%;
   display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden;
   background: #e5ddd5;
+  overflow: hidden;
 }
 
-/* HEADER INSIDE CHAT */
+/* HEADER */
 .chat-header {
   background: #075e54;
   color: white;
   padding: 10px;
-  font-weight: bold;
 }
 
 /* =========================
-   MESSAGES (SCROLL ONLY HERE)
+   MESSAGES (ONLY SCROLL HERE)
 ========================= */
 .chat-body {
   flex: 1;
@@ -103,7 +99,6 @@ body {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  background: #e5ddd5;
 }
 
 /* MESSAGE BUBBLES */
@@ -113,23 +108,22 @@ body {
   margin: 5px 0;
   border-radius: 10px;
   word-wrap: break-word;
-  font-size: 14px;
 }
 
-/* MY MESSAGE */
+/* ME */
 .msg.me {
   background: #dcf8c6;
   align-self: flex-end;
 }
 
-/* THEIR MESSAGE */
+/* THEM */
 .msg.them {
   background: white;
   align-self: flex-start;
 }
 
 /* =========================
-   INPUT BAR (ALWAYS FIXED)
+   INPUT (FIXED BOTTOM ALWAYS)
 ========================= */
 .chat-input {
   display: flex;
@@ -140,7 +134,7 @@ body {
 
   position: sticky;
   bottom: 0;
-  z-index: 100;
+  z-index: 999;
 }
 
 .chat-input input {
@@ -151,7 +145,6 @@ body {
   outline: none;
 }
 
-/* SEND BUTTON */
 .send-btn {
   background: #25d366;
   border: none;
@@ -163,40 +156,20 @@ body {
 }
 
 /* =========================
-   LOGIN (CENTERED)
+   LOGIN CENTERED
 ========================= */
 .login-screen {
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #0b141a;
 }
 
 .login-card {
   background: white;
   color: black;
   width: 320px;
-  max-width: 90%;
   padding: 30px;
   border-radius: 15px;
   text-align: center;
-}
-
-.login-card input {
-  width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-
-.login-card button {
-  width: 100%;
-  padding: 10px;
-  background: #25d366;
-  border: none;
-  border-radius: 10px;
-  color: white;
-  font-weight: bold;
 }

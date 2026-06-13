@@ -3,9 +3,11 @@ import { socket } from "../services/socket";
 
 export default function Chat({ user, onLogout }) {
 
-  const [activeChat, setActiveChat] = useState("Cherry");
+  const otherUser = user === "Ray" ? "Cherry" : "Ray";
+
+  const [activeChat, setActiveChat] = useState(otherUser);
   const [messages, setMessages] = useState([]);
-  const [text, setText] = useState([]);
+  const [text, setText] = useState("");
 
   // LOGIN
   useEffect(() => {
@@ -45,27 +47,24 @@ export default function Chat({ user, onLogout }) {
 
       {/* TOP BAR */}
       <div className="online-bar">
-        <span>📲 Install App • Ray & Cherry Chat</span>
+        <span>📲 Ray & Cherry Chat</span>
         <button className="install-btn">Install</button>
       </div>
 
       <div className="chat-layout">
 
-        {/* SIDEBAR */}
+        {/* SIDEBAR (ONLY ONE CHAT) */}
         <div className="sidebar">
 
           <h3>{user}</h3>
           <button onClick={onLogout}>Logout</button>
 
-          {["Ray", "Cherry"].map(name => (
-            <div
-              key={name}
-              className={`chat-item ${activeChat === name ? "active" : ""}`}
-              onClick={() => setActiveChat(name)}
-            >
-              💬 {name}
-            </div>
-          ))}
+          <div
+            className={`chat-item ${activeChat === otherUser ? "active" : ""}`}
+            onClick={() => setActiveChat(otherUser)}
+          >
+            💬 Chat with {otherUser}
+          </div>
 
         </div>
 
@@ -76,7 +75,7 @@ export default function Chat({ user, onLogout }) {
             Chat with {activeChat}
           </div>
 
-          {/* MESSAGES (ONLY SCROLL AREA) */}
+          {/* SCROLL AREA ONLY */}
           <div className="chat-body">
 
             {messages
@@ -95,7 +94,7 @@ export default function Chat({ user, onLogout }) {
 
           </div>
 
-          {/* INPUT (FIXED BOTTOM) */}
+          {/* FIXED INPUT BAR */}
           <div className="chat-input">
 
             <input
