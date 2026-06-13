@@ -4,13 +4,13 @@ import { uploadFile } from "../services/upload";
 
 export default function Chat({ user, onLogout }) {
 
-  const [activeChat, setActiveChat] = useState(
-    user === "Ray" ? "Cherry" : "Ray"
-  );
+  const partner = user === "Ray" ? "Cherry" : "Ray";
 
+  const [activeChat, setActiveChat] = useState(partner);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [showChats, setShowChats] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
 
   const mediaRecorderRef = useRef(null);
@@ -18,9 +18,7 @@ export default function Chat({ user, onLogout }) {
 
   const avatar = localStorage.getItem("avatar");
 
-  // =========================
-  // LOGIN
-  // =========================
+  // ================= LOGIN =================
   useEffect(() => {
     socket.emit("login", {
       user,
@@ -29,29 +27,13 @@ export default function Chat({ user, onLogout }) {
     });
   }, []);
 
-  // =========================
-  // FORCE LOGOUT
-  // =========================
-  useEffect(() => {
-    socket.on("force-logout", () => {
-      localStorage.clear();
-      window.location.reload();
-    });
-
-    return () => socket.off("force-logout");
-  }, []);
-
-  // =========================
-  // ONLINE USERS
-  // =========================
+  // ================= ONLINE =================
   useEffect(() => {
     socket.on("online-users", setOnlineUsers);
     return () => socket.off("online-users");
   }, []);
 
-  // =========================
-  // MESSAGES
-  // =========================
+  // ================= MESSAGES =================
   useEffect(() => {
 
     socket.on("message", (msg) => {
@@ -63,30 +45,20 @@ export default function Chat({ user, onLogout }) {
         });
       }
 
-      socket.emit("message-seen", {
-        messageId: msg.id
-      });
+      socket.emit("message-seen", { messageId: msg.id });
     });
 
     socket.on("message-updated", ({ messageId, status }) => {
       setMessages(prev =>
-        prev.map(m =>
-          m.id === messageId ? { ...m, status } : m
-        )
+        prev.map(m => m.id === messageId ? { ...m, status } : m)
       );
-    });
-
-    socket.on("message-deleted", ({ messageId }) => {
-      setMessages(prev => prev.filter(m => m.id !== messageId));
     });
 
     return () => socket.off("message");
 
   }, []);
 
-  // =========================
-  // TYPING
-  // =========================
+  // ================= TYPING =================
   useEffect(() => {
     socket.on("typing", ({ from, to }) => {
       if (to === user) {
@@ -107,9 +79,7 @@ export default function Chat({ user, onLogout }) {
     });
   };
 
-  // =========================
-  // SEND MESSAGE
-  // =========================
+  // ================= SEND =================
   const sendMessage = () => {
     if (!text.trim()) return;
 
@@ -126,16 +96,7 @@ export default function Chat({ user, onLogout }) {
     setText("");
   };
 
-  // =========================
-  // DELETE MESSAGE
-  // =========================
-  const deleteMessage = (id) => {
-    socket.emit("delete-message", { messageId: id });
-  };
-
-  // =========================
-  // VOICE NOTES
-  // =========================
+  // ================= VOICE =================
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -170,112 +131,107 @@ export default function Chat({ user, onLogout }) {
     mediaRecorderRef.current?.stop();
   };
 
-  // =========================
-  // UI
-  // =========================
+  // ================= FILTER =================
+  const chatMessages = messages.filter(m =>
+    (m.sender === user && m.receiver === activeChat) ||
+    (m.sender === activeChat && m.receiver === user)
+  );
+
   return (
-    <div className="chat-layout">
+    <div className="mobile-app">
 
-      {/* SIDEBAR */}
-      <div className="sidebar">
+      {/* HEADER */}
+      <div className="top-bar">
+        <button onClick={() => setShowChats(!showChats)}>
+          ☰
+        </button>
 
-        <div className="user-header">
-          <h3>💚 Ray & Cherry</h3>
-          <button onClick={onLogout}>Logout</button>
-        </div>
+        <div className="title">Ray & Cherry</div>
 
-        {["Ray", "Cherry"].map(u => (
-          <div
-            key={u}
-            onClick={() => setActiveChat(u)}
-            className={`chat-item ${activeChat === u ? "active" : ""}`}
-          >
+        <button onClick={onLogout}>Logout</button>
+      </div>
 
-            <img
-              src={avatar || "https://via.placeholder.com/40"}
-              className="avatar"
-            />
+      {/* CHAT LIST (OVERLAY) */}
+      {showChats && (
+        <div className="chat-list">
 
-            <div className="chat-info">
-              <strong>{u}</strong>
-              <small>
-                {onlineUsers.includes(u) ? "🟢 online" : "⚪ offline"}
-              </small>
+          {[partner].map(u => (
+            <div
+              key={u}
+              className="chat-item"
+              onClick={() => {
+                setActiveChat(u);
+                setShowChats(false);
+              }}
+            >
+
+              <img
+                src={avatar || "https://via.placeholder.com/40"}
+                className="avatar"
+              />
+
+              <div>
+                <b>{u}</b>
+                <small>
+                  {onlineUsers.includes(u) ? "🟢 online" : "⚪ offline"}
+                </small>
+              </div>
+
             </div>
+          ))}
 
+        </div>
+      )}
+
+      {/* CHAT BODY (WHITE LIKE WHATSAPP) */}
+      <div className="chat-screen">
+
+        {chatMessages.map(m => (
+          <div
+            key={m.id}
+            className={`msg ${m.sender === user ? "me" : "them"}`}
+          >
+            {m.type === "text" && m.text}
+            {m.type === "voice" && <audio controls src={m.url} />}
+
+            <small>
+              {m.status === "sent" && "✓"}
+              {m.status === "seen" && "✓✓"}
+            </small>
           </div>
         ))}
 
-      </div>
-
-      {/* CHAT */}
-      <div className="chat-container">
-
-        <div className="chat-body">
-
-          {messages
-            .filter(m =>
-              (m.sender === user && m.receiver === activeChat) ||
-              (m.sender === activeChat && m.receiver === user)
-            )
-            .map(m => (
-              <div
-                key={m.id}
-                className={`msg ${m.sender === user ? "me" : "them"}`}
-                onDoubleClick={() => deleteMessage(m.id)}
-              >
-
-                {m.type === "text" && m.text}
-                {m.type === "voice" && <audio controls src={m.url} />}
-
-                <small>
-                  {m.status === "sent" && "✓"}
-                  {m.status === "seen" && "✓✓"}
-                </small>
-
-              </div>
-            ))}
-
-        </div>
-
-        {/* TYPING */}
         {typingUser && (
           <div className="typing">
             {typingUser} is typing...
           </div>
         )}
 
-        {/* INPUT */}
-        <div className="chat-input">
+      </div>
 
-          <input
-            value={text}
-            onChange={(e) => handleTyping(e.target.value)}
-            placeholder="Type message..."
-          />
+      {/* INPUT */}
+      <div className="chat-input">
 
-          <button className="send-btn" onClick={sendMessage}>
-            Send
-          </button>
+        <input
+          value={text}
+          onChange={(e) => handleTyping(e.target.value)}
+          placeholder="Message..."
+        />
 
-        </div>
+        <button className="send-btn" onClick={sendMessage}>
+          ➤
+        </button>
 
-        {/* VOICE */}
         <button
           onMouseDown={startRecording}
           onMouseUp={stopRecording}
-          style={{
-            background: "#25d366",
-            border: "none",
-            padding: "10px",
-            borderRadius: "50%",
-            margin: "10px"
-          }}
+          className="mic-btn"
         >
           🎤
         </button>
 
       </div>
+
     </div>
   );
 }
