@@ -10,9 +10,9 @@ export default function App() {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
-  // =========================
-  // AUTO LOGIN STORAGE CHECK
-  // =========================
+  // ==========================================
+  // AUTO LOGIN LOCALSTORAGE PROFILE RESTORE
+  // ==========================================
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedAvatar = localStorage.getItem("avatar");
@@ -25,15 +25,15 @@ export default function App() {
     setLoading(false);
   }, []);
 
-  // =========================
-  // SOCKET STATE SYNCHRONIZATION
-  // =========================
+  // ==========================================
+  // SECURE WEBSOCKET SYNCHRONIZATION STREAM
+  // ==========================================
   useEffect(() => {
     socket.on("connect", () => {
       console.log("Secure Connection Established:", socket.id);
     });
 
-    // INSTANT LIVE DETECTOR: Instantly catches when anyone logs in or drops out
+    // Instantly monitors incoming user connection states live on screen
     socket.on("online-users", (users) => {
       setOnlineUsers(users);
     });
@@ -44,29 +44,43 @@ export default function App() {
     };
   }, []);
 
-  // =========================
-  // NOTIFICATION PERMISSION REQUEST
-  // =========================
+  // ==========================================
+  // NATIVE PUSH NOTIFICATION REQUEST HOOK
+  // ==========================================
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  // =========================
-  // PWA SERVICE WORKER
-  // =========================
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch((err) => {
-        console.log("Service Worker Registration Postponed:", err);
+      Notification.requestPermission().then((permission) => {
+        console.log("Notification capability status:", permission);
       });
     }
   }, []);
 
-  // =========================
-  // PWA INSTALL ENGINE
-  // =========================
+  // ==========================================
+  // 🔥 PRODUCTION-GRADE PWA APP DRAWER ENGINE
+  // ==========================================
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((registration) => {
+            console.log("Loved Chat System Registered! Scope:", registration.scope);
+            
+            // Force code updates instantly if a new shell is deployed
+            if (registration.active) {
+              registration.update();
+            }
+          })
+          .catch((err) => {
+            console.error("Native App compilation rejected:", err);
+          });
+      });
+    }
+  }, []);
+
+  // ==========================================
+  // NATIVE OPERATING SYSTEM INSTALL PROMPT
+  // ==========================================
   useEffect(() => {
     const handler = (e) => {
       e.preventDefault();
@@ -84,11 +98,14 @@ export default function App() {
     const result = await deferredPrompt.userChoice;
 
     if (result.outcome === "accepted") {
-      console.log("PWA Installation Verified Successfully");
+      console.log("PWA Installation Verified and Package Created!");
     }
     setDeferredPrompt(null);
   };
 
+  // ==========================================
+  // USER WORKSPACE AUTH OVERLAYS
+  // ==========================================
   const handleLogin = (username, avatarUrl) => {
     setUser(username);
     setAvatar(avatarUrl);
@@ -104,6 +121,9 @@ export default function App() {
     setAvatar("");
   };
 
+  // ==========================================
+  // VIEWPORT MATRIX ROUTER
+  // ==========================================
   if (loading) {
     return (
       <div className="login-screen-container">
