@@ -8,8 +8,9 @@ export default function Login({ onLogin }) {
   const [avatar, setAvatar] = useState("");
   const [preview, setPreview] = useState(null);
 
-  const correctPassword = "1234";
+  const correctPassword = "15.01.2026";
 
+  // PICK IMAGE FROM GALLERY
   const handleImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -46,14 +47,24 @@ export default function Login({ onLogin }) {
 
       <div className="login-card">
 
-        <h1>💬 WhatsApp Chat</h1>
+        {/* BRAND HEADER */}
+        <div style={{ fontSize: 40, marginBottom: 10 }}>
+          💚 ⭕ ⭕ 💚
+        </div>
 
+        <h1>Ray & Cherry</h1>
+        <p style={{ fontStyle: "italic", marginBottom: 10 }}>
+          Intertwined connection chat 💫
+        </p>
+
+        {/* NAME */}
         <input
-          placeholder="Enter name"
+          placeholder="Enter name (Ray / Cherry)"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
+        {/* PASSWORD */}
         <input
           type="password"
           placeholder="Password"
@@ -61,7 +72,7 @@ export default function Login({ onLogin }) {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {/* GALLERY PICK */}
+        {/* PROFILE IMAGE PICK */}
         <input type="file" accept="image/*" onChange={handleImage} />
 
         {preview && (
@@ -71,13 +82,14 @@ export default function Login({ onLogin }) {
               width: 80,
               height: 80,
               borderRadius: "50%",
-              marginTop: 10
+              marginTop: 10,
+              objectFit: "cover"
             }}
           />
         )}
 
         <button onClick={handleLogin}>
-          Enter Chat
+          Enter Chat 💬
         </button>
 
       </div>

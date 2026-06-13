@@ -5,7 +5,7 @@ import { uploadFile } from "../services/upload";
 export default function Chat({ user, onLogout }) {
 
   const [activeChat, setActiveChat] = useState(
-    user === "Raymond" ? "Cherry" : "Raymond"
+    user === "Ray" ? "Cherry" : "Ray"
   );
 
   const [messages, setMessages] = useState([]);
@@ -50,21 +50,19 @@ export default function Chat({ user, onLogout }) {
   }, []);
 
   // =========================
-  // MESSAGES + NOTIFICATIONS
+  // MESSAGES
   // =========================
   useEffect(() => {
 
     socket.on("message", (msg) => {
       setMessages(prev => [...prev, msg]);
 
-      // notification
       if (msg.receiver === user && Notification.permission === "granted") {
         new Notification(`New message from ${msg.sender}`, {
           body: msg.text || "Media message"
         });
       }
 
-      // auto seen
       socket.emit("message-seen", {
         messageId: msg.id
       });
@@ -182,11 +180,11 @@ export default function Chat({ user, onLogout }) {
       <div className="sidebar">
 
         <div className="user-header">
-          <h3>{user}</h3>
+          <h3>💚 Ray & Cherry</h3>
           <button onClick={onLogout}>Logout</button>
         </div>
 
-        {["Raymond", "Cherry"].map(u => (
+        {["Ray", "Cherry"].map(u => (
           <div
             key={u}
             onClick={() => setActiveChat(u)}
@@ -210,10 +208,9 @@ export default function Chat({ user, onLogout }) {
 
       </div>
 
-      {/* CHAT AREA */}
+      {/* CHAT */}
       <div className="chat-container">
 
-        {/* MESSAGES */}
         <div className="chat-body">
 
           {messages
