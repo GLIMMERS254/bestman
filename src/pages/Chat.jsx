@@ -11,13 +11,12 @@ export default function Chat({ user, avatar, onLogout }) {
   const [text, setText] = useState("");
   const [typingUser, setTypingUser] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
-  // =========================
-  // LOGIN (WITH AVATAR)
-  // =========================
+  // ================= LOGIN =================
   useEffect(() => {
     socket.emit("login", {
       user,
@@ -26,22 +25,17 @@ export default function Chat({ user, avatar, onLogout }) {
     });
   }, []);
 
-  // =========================
-  // ONLINE USERS
-  // =========================
+  // ================= ONLINE =================
   useEffect(() => {
     socket.on("online-users", setOnlineUsers);
     return () => socket.off("online-users");
   }, []);
 
-  // =========================
-  // RECEIVE MESSAGES
-  // =========================
+  // ================= MESSAGES =================
   useEffect(() => {
     socket.on("message", (msg) => {
       setMessages(prev => [...prev, msg]);
 
-      // AUTO MARK SEEN
       socket.emit("message-seen", {
         messageId: msg.id,
         user
@@ -56,16 +50,10 @@ export default function Chat({ user, avatar, onLogout }) {
       );
     });
 
-    socket.on("message-deleted", ({ messageId }) => {
-      setMessages(prev => prev.filter(m => m.id !== messageId));
-    });
-
     return () => socket.off("message");
   }, []);
 
-  // =========================
-  // TYPING INDICATOR
-  // =========================
+  // ================= TYPING =================
   useEffect(() => {
     socket.on("typing", ({ from, to }) => {
       if (to === user) {
@@ -77,9 +65,7 @@ export default function Chat({ user, avatar, onLogout }) {
     return () => socket.off("typing");
   }, []);
 
-  // =========================
-  // SEND MESSAGE
-  // =========================
+  // ================= SEND =================
   const sendMessage = () => {
     if (!text.trim()) return;
 
@@ -89,17 +75,14 @@ export default function Chat({ user, avatar, onLogout }) {
       receiver: activeChat,
       text,
       type: "text",
-      status: "sent",
-      createdAt: new Date()
+      status: "sent"
     };
 
     socket.emit("message", msg);
     setText("");
   };
 
-  // =========================
-  // TYPING EMIT
-  // =========================
+  // ================= TYPING =================
   const handleTyping = (value) => {
     setText(value);
 
@@ -109,149 +92,94 @@ export default function Chat({ user, avatar, onLogout }) {
     });
   };
 
-  // =========================
-  // DELETE MESSAGE
-  // =========================
-  const deleteMessage = (id) => {
-    socket.emit("delete-message", { messageId: id });
-  };
-
-  // =========================
-  // VOICE NOTES
-  // =========================
-  const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    const recorder = new MediaRecorder(stream);
-    mediaRecorderRef.current = recorder;
-
-    recorder.ondataavailable = (e) => {
-      chunksRef.current.push(e.data);
-    };
-
-    recorder.onstop = async () => {
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      chunksRef.current = [];
-
-      const file = new File([blob], "voice.webm");
-      const data = await uploadFile(file);
-
-      socket.emit("message", {
-        id: Date.now(),
-        sender: user,
-        receiver: activeChat,
-        type: "voice",
-        url: data.url,
-        status: "sent"
-      });
-    };
-
-    recorder.start();
-  };
-
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-  };
-
   return (
-    <div className="chat-layout">
+    <div className="app-container">
 
-      {/* ================= SIDEBAR ================= */}
-      <div className="sidebar">
-
-        <div className="user-header">
-          <img src={avatar || "https://via.placeholder.com/40"} className="avatar" />
-          <div>
-            <b>{user}</b>
-            <div style={{ fontSize: 12 }}>
-              {onlineUsers.includes(user) ? "🟢 online" : "⚪ offline"}
-            </div>
-          </div>
-          <button onClick={onLogout}>Logout</button>
-        </div>
-
-        {/* ONLY ONE CHAT */}
-        <div
-          className={`chat-item ${activeChat === otherUser ? "active" : ""}`}
-          onClick={() => setActiveChat(otherUser)}
-        >
-          <img
-            src="https://via.placeholder.com/40"
-            className="avatar"
-          />
-          <div className="chat-info">
-            <b>{otherUser}</b>
-            <small>Tap to chat</small>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ================= CHAT AREA ================= */}
-      <div className="chat-container">
-
-        <div className="chat-header">
-          Chat with {activeChat}
-        </div>
-
-        {/* MESSAGES */}
-        <div className="chat-body">
-
-          {messages
-            .filter(m =>
-              (m.sender === user && m.receiver === activeChat) ||
-              (m.sender === activeChat && m.receiver === user)
-            )
-            .map(m => (
-              <div
-                key={m.id}
-                className={`msg ${m.sender === user ? "me" : "them"}`}
-                onDoubleClick={() => deleteMessage(m.id)}
-              >
-
-                {m.type === "text" && m.text}
-                {m.type === "voice" && <audio controls src={m.url} />}
-
-                <small>
-                  {m.status === "sent" && "✓"}
-                  {m.status === "seen" && "✓✓"}
-                </small>
-
-              </div>
-            ))}
-
-        </div>
-
-        {/* TYPING */}
-        {typingUser && (
-          <div className="typing">
-            {typingUser} is typing...
-          </div>
-        )}
-
-        {/* INPUT */}
-        <div className="chat-input">
-
-          <input
-            value={text}
-            onChange={(e) => handleTyping(e.target.value)}
-            placeholder="Type message..."
-          />
-
-          <button className="send-btn" onClick={sendMessage}>
-            Send
+      {/* TOP BAR */}
+      <div className="top-bar">
+        <div className="left">
+          <button className="menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            ☰
           </button>
 
+          <div className="profile">
+            <img src={avatar || "https://via.placeholder.com/40"} />
+            <span>{user}</span>
+          </div>
         </div>
 
-        {/* VOICE HOLD */}
-        <button
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-        >
-          🎤 Hold
-        </button>
+        <button className="menu-btn" onClick={onLogout}>Logout</button>
+      </div>
 
+      <div className="chat-layout">
+
+        {/* SIDEBAR */}
+        <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+
+          <div
+            className={`chat-item ${activeChat === otherUser ? "active" : ""}`}
+            onClick={() => {
+              setActiveChat(otherUser);
+              setSidebarOpen(false);
+            }}
+          >
+            <img src="https://via.placeholder.com/40" className="avatar" />
+            <div>
+              <b>{otherUser}</b>
+              <div style={{ fontSize: 12 }}>
+                {onlineUsers.includes(otherUser) ? "🟢 online" : "⚪ offline"}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* CHAT AREA */}
+        <div className="chat-container">
+
+          <div className="chat-header">
+            Chat with {activeChat}
+          </div>
+
+          {/* MESSAGES */}
+          <div className="chat-body">
+
+            {messages
+              .filter(m =>
+                (m.sender === user && m.receiver === activeChat) ||
+                (m.sender === activeChat && m.receiver === user)
+              )
+              .map(m => (
+                <div key={m.id} className={`msg ${m.sender === user ? "me" : "them"}`}>
+                  {m.text}
+                  <small>
+                    {m.status === "sent" && " ✓"}
+                    {m.status === "seen" && " ✓✓"}
+                  </small>
+                </div>
+              ))}
+
+          </div>
+
+          {/* TYPING */}
+          {typingUser && (
+            <div className="typing">{typingUser} is typing...</div>
+          )}
+
+          {/* INPUT (FIXED ALWAYS) */}
+          <div className="chat-input">
+            <input
+              value={text}
+              onChange={(e) => handleTyping(e.target.value)}
+              placeholder="Type a message..."
+            />
+
+            <button className="send-btn" onClick={sendMessage}>
+              Send
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   );
