@@ -19,11 +19,11 @@ app.use(cors({
 }));
 
 // =========================
-// DATABASE
+// DATABASE CONNECTION
 // =========================
 mongoose.connect(process.env.MONGO_URL)
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log(err));
+  .then(() => console.log("MongoDB Connected Successfully"))
+  .catch(err => console.log("Database connection error:", err));
 
 // =========================
 // SOCKET SETUP
@@ -36,43 +36,52 @@ const io = new Server(server, {
 });
 
 // =========================
-// MEMORY STORAGE
+// RUNTIME MEMORY STORAGE
 // =========================
 let messages = [];
 let users = new Map();
 
 // =========================
-// SOCKET EVENTS
+// SOCKET REALTIME ROUTER
 // =========================
 io.on("connection", (socket) => {
 
-  // LOGIN WITH PROFILE
-  socket.on("login", ({ user, deviceId, avatar }) => {
-
-    users.set(user, {
+  // 🔥 CHAT ENGINE JOIN HOOK: Triggers the absolute second anyone connects
+  socket.on("join", (username) => {
+    socket.username = username;
+    
+    users.set(username, {
       socketId: socket.id,
-      deviceId,
-      avatar: avatar || null
+      avatar: null
     });
 
+    console.log(`[Workspace Sync] ${username} connected.`);
+
+    // 🟢 INSTANT MONITOR: Broadcast updated online list to all users
     io.emit("online-users", Array.from(users.keys()));
+
+    // 📥 OFFLINE HISTORY ENGINE: Send all past saved texts directly to this user's screen
+    socket.emit("chat-history", messages);
   });
 
-  // SEND MESSAGE
+  // SEND MESSAGE HANDLER
   socket.on("message", (msg) => {
-
     const fullMsg = {
       ...msg,
       status: "sent"
     };
 
     messages.push(fullMsg);
+
+    // Limit memory footprint to prevent crashes (Keeps last 300 messages)
+    if (messages.length > 300) messages.shift();
+
+    // Broadcast live to everyone
     io.emit("message", fullMsg);
   });
 
-  // MESSAGE SEEN (READ RECEIPT)
+  // MESSAGE SEEN (READ RECEIPT ENGINE)
   socket.on("message-seen", ({ messageId }) => {
-
     messages = messages.map(m =>
       m.id === messageId ? { ...m, status: "seen" } : m
     );
@@ -83,38 +92,38 @@ io.on("connection", (socket) => {
     });
   });
 
-  // TYPING INDICATOR
+  // LIVE TYPING INDICATORS
   socket.on("typing", ({ from, to }) => {
     io.emit("typing", { from, to });
   });
 
-  // DELETE MESSAGE
+  // DOUBLE-TAP MESSAGE DELETION
   socket.on("delete-message", ({ messageId }) => {
-
     messages = messages.filter(m => m.id !== messageId);
-
     io.emit("message-deleted", { messageId });
   });
 
-  // GET USERS WITH PROFILES
+  // SYSTEM PROFILES GENERATOR
   socket.on("get-users", () => {
-
     const result = Array.from(users.entries()).map(([name, data]) => ({
       name,
       avatar: data.avatar
     }));
-
     io.emit("users-list", result);
   });
 
-  // DISCONNECT
+  // CLEAN DISCONNECT PIPELINE
   socket.on("disconnect", () => {
-    io.emit("online-users", Array.from(users.keys()));
+    if (socket.username) {
+      users.delete(socket.username);
+      console.log(`[Workspace Sync] ${socket.username} left.`);
+      io.emit("online-users", Array.from(users.keys()));
+    }
   });
 });
 
 // =========================
-// ROUTES
+// ROUTES & API PIPELINES
 // =========================
 app.use("/upload", uploadRoute);
 
@@ -123,9 +132,9 @@ app.get("/", (req, res) => {
 });
 
 // =========================
-// START
+// START ENGINE
 // =========================
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+  console.log("Server running securely on port", PORT);
 });

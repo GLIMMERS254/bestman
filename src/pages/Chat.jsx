@@ -15,29 +15,31 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
   const chunksRef = useRef([]);
   const chatBodyRef = useRef(null);
 
+  // Auto-scroller loop to track clean layouts at viewports bottom
   useEffect(() => {
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
     }
   }, [messages, typingUser]);
 
-  // Real-time message streaming updates
+  // ==========================================
+  // REAL-TIME PACKET ENGINE & HISTORY MATRIX
+  // ==========================================
   useEffect(() => {
+    // 📥 OFFLINE MESSAGES SYNC: Catches messages sent before she logging in
+    socket.on("chat-history", (history) => {
+      setMessages(history);
+    });
+
     socket.on("message", (msg) => {
       setMessages((prev) => {
         if (prev.some(m => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
       
-      socket.emit("message-seen", { messageId: msg.id, user });
-
-      if (msg.sender !== user && document.visibilityState !== "visible") {
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification(`New message from ${msg.sender}`, {
-            body: msg.type === "text" ? msg.text : "🎤 Voice note",
-            icon: "/app.jpg"
-          });
-        }
+      // Auto-trigger read receipt back to the sender
+      if (msg.sender !== user) {
+        socket.emit("message-seen", { messageId: msg.id, user });
       }
     });
 
@@ -52,18 +54,20 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
     });
 
     return () => {
+      socket.off("chat-history");
       socket.off("message");
       socket.off("message-updated");
       socket.off("message-deleted");
     };
   }, [user]);
 
-  // Live typing event loops
+  // LIVE TYPING BUFFER TRACKER
   useEffect(() => {
     socket.on("typing", ({ from, to }) => {
       if (to === user) {
         setTypingUser(from);
-        setTimeout(() => setTypingUser(null), 1500);
+        const timer = setTimeout(() => setTypingUser(null), 1500);
+        return () => clearTimeout(timer);
       }
     });
     return () => socket.off("typing");
@@ -83,6 +87,7 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
       createdAt: new Date()
     };
 
+    // Optimistically project into domestic feed before transmission completes
     setMessages((prev) => [...prev, msg]);
     socket.emit("message", msg);
     setText("");
@@ -97,6 +102,7 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
     socket.emit("delete-message", { messageId: id });
   };
 
+  // AUDIO CORE VOICE ENGINE
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -131,7 +137,7 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
 
       recorder.start();
     } catch (err) {
-      console.error("Microphone hardware connection rejected", err);
+      console.error("Microphone hardware access rejected:", err);
     }
   };
 
@@ -149,14 +155,9 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
             ☰ Chats
           </button>
           <div className="profile">
-            <img 
-              src={avatar || "/app.jpg"} 
-              className="user-header-avatar" 
-              alt="Profile avatar" 
-            />
+            <img src={avatar || "/app.jpg"} className="user-header-avatar" alt="User Profile" />
             <div>
               <b>{user}</b>
-              {/* 🟢 DYNAMIC LIVE STATUS INDICATOR */}
               <span className="status-indicator">
                 {onlineUsers.includes(user) ? "🟢 online" : "⚪ offline"}
               </span>
@@ -184,7 +185,6 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
             <div className="avatar-placeholder">{otherUser[0]}</div>
             <div className="chat-info">
               <b>{otherUser}</b>
-              {/* 🟢 OTHER USER LIVE MONITOR STATUS */}
               <small style={{ color: onlineUsers.includes(otherUser) ? "#00a884" : "#8696a0", fontWeight: "bold" }}>
                 {onlineUsers.includes(otherUser) ? "● online" : "○ offline"}
               </small>
@@ -209,7 +209,7 @@ export default function Chat({ user, avatar, onLogout, onlineUsers, deferredProm
             </span>
           </div>
 
-          {/* 🤍 CHAT MATRIX CANVAS VIEWPORT */}
+          {/* 🤍 SMOOTH WHITE INTERACTIVE MESSAGE VIEWER WALL */}
           <div className="chat-body" ref={chatBodyRef}>
             {messages
               .filter(
