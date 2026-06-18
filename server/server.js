@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { Server } from "socket.io";
 import mongoose from "mongoose";
 import uploadRoute from "./routes/upload.js";
+import { Message } from "./models/Message.js"; // 🔥 IMPORT MODEL
 
 dotenv.config();
 
@@ -35,10 +36,7 @@ const io = new Server(server, {
   }
 });
 
-// =========================
-// RUNTIME MEMORY STORAGE
-// =========================
-let messages = [];
+// RUNTIME MEMORY FOR USERS
 let users = new Map();
 
 // =========================
@@ -46,8 +44,8 @@ let users = new Map();
 // =========================
 io.on("connection", (socket) => {
 
-  // 🔥 CHAT ENGINE JOIN HOOK: Triggers the absolute second anyone connects
-  socket.on("join", (username) => {
+  // CHAT ENGINE JOIN HOOK
+  socket.on("join", async (username) => {
     socket.username = username;
     
     users.set(username, {
@@ -56,40 +54,54 @@ io.on("connection", (socket) => {
     });
 
     console.log(`[Workspace Sync] ${username} connected.`);
-
-    // 🟢 INSTANT MONITOR: Broadcast updated online list to all users
     io.emit("online-users", Array.from(users.keys()));
 
-    // 📥 OFFLINE HISTORY ENGINE: Send all past saved texts directly to this user's screen
-    socket.emit("chat-history", messages);
+    try {
+      // 📥 FETCH PERMANENT HISTORY: Get last 200 messages from MongoDB
+      const dbMessages = await Message.find()
+        .sort({ createdAt: -1 })
+        .limit(200);
+      
+      // Reverse them so they are in correct chronological order (oldest to newest)
+      socket.emit("chat-history", dbMessages.reverse());
+    } catch (err) {
+      console.error("Failed to fetch history from MongoDB:", err);
+    }
   });
 
-  // SEND MESSAGE HANDLER
-  socket.on("message", (msg) => {
-    const fullMsg = {
-      ...msg,
-      status: "sent"
-    };
+  // SEND MESSAGE HANDLER (SAVING TO DB)
+  socket.on("message", async (msg) => {
+    try {
+      // 🔥 SAVE TO MONGODB: Keep text permanently safe
+      const savedMsg = await Message.create({
+        sender: msg.sender,
+        receiver: msg.receiver,
+        text: msg.text,
+        type: msg.type,
+        url: msg.url,
+        status: "sent"
+      });
 
-    messages.push(fullMsg);
-
-    // Limit memory footprint to prevent crashes (Keeps last 300 messages)
-    if (messages.length > 300) messages.shift();
-
-    // Broadcast live to everyone
-    io.emit("message", fullMsg);
+      // Broadcast the saved database message object (includes auto-generated MongoDB IDs)
+      io.emit("message", savedMsg);
+    } catch (err) {
+      console.error("Failed to save message to database:", err);
+    }
   });
 
   // MESSAGE SEEN (READ RECEIPT ENGINE)
-  socket.on("message-seen", ({ messageId }) => {
-    messages = messages.map(m =>
-      m.id === messageId ? { ...m, status: "seen" } : m
-    );
+  socket.on("message-seen", async ({ messageId }) => {
+    try {
+      // Update status in MongoDB permanently
+      await Message.findByIdAndUpdate(messageId, { status: "seen" });
 
-    io.emit("message-updated", {
-      messageId,
-      status: "seen"
-    });
+      io.emit("message-updated", {
+        messageId,
+        status: "seen"
+      });
+    } catch (err) {
+      console.error("Failed to update message status in DB:", err);
+    }
   });
 
   // LIVE TYPING INDICATORS
@@ -98,9 +110,14 @@ io.on("connection", (socket) => {
   });
 
   // DOUBLE-TAP MESSAGE DELETION
-  socket.on("delete-message", ({ messageId }) => {
-    messages = messages.filter(m => m.id !== messageId);
-    io.emit("message-deleted", { messageId });
+  socket.on("delete-message", async ({ messageId }) => {
+    try {
+      // Delete permanently from MongoDB
+      await Message.findByIdAndDelete(messageId);
+      io.emit("message-deleted", { messageId });
+    } catch (err) {
+      console.error("Failed to delete message from DB:", err);
+    }
   });
 
   // SYSTEM PROFILES GENERATOR
@@ -116,24 +133,17 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     if (socket.username) {
       users.delete(socket.username);
-      console.log(`[Workspace Sync] ${socket.username} left.`);
       io.emit("online-users", Array.from(users.keys()));
     }
   });
 });
 
-// =========================
-// ROUTES & API PIPELINES
-// =========================
 app.use("/upload", uploadRoute);
 
 app.get("/", (req, res) => {
   res.send("Server Running");
 });
 
-// =========================
-// START ENGINE
-// =========================
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log("Server running securely on port", PORT);

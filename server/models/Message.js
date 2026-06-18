@@ -2,17 +2,14 @@ import mongoose from "mongoose";
 
 const MessageSchema = new mongoose.Schema(
   {
-    sender: String,
-    receiver: String,
-    text: String,
-    type: String, // text | image | video | voice
-    url: String,
-    status: {
-      type: String,
-      default: "sent",
-    },
+    sender: { type: String, required: true },
+    receiver: { type: String, required: true },
+    text: { type: String },
+    type: { type: String, default: "text" }, // "text" or "voice"
+    url: { type: String }, // For voice messages
+    status: { type: String, default: "sent" }, // "sent" or "seen"
   },
-  { timestamps: true }
+  { timestamps: true } // Automatically creates createdAt and updatedAt fields
 );
 
-export default mongoose.model("Message", MessageSchema);
+export const Message = mongoose.model("Message", MessageSchema);
